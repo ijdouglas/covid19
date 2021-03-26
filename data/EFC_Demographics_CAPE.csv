@@ -1,0 +1,148 @@
+Study,ID,Sex,DOC,AnnualHouseholdIncome,SubjectSESCommunityLadder,SubjectiveSESUnitedStatesLadder,County,CountyEthnicDensity,ChildRaceOrEthnicity,ChildLatinoHeritage,ChildPlaceOfBirth,ChildYearsInTheUnitedStates,MotherRaceOrEthnicity,MotherLatinoHeritage,MotherPlaceOfBirth,FatherRaceOrEthnicity,FatherLatinoHeritage,FatherPlaceOfBirth,MaternalGrandmotherPlaceOfBirth,MaternalGrandfatherPlaceOfBirth,ParternalGrandmotherPlaceOfBirth,ParternalGrandfatherPlaceOfBirth,LanguagesSpokenInChildHome,ParentEnglishProficiency,MotherEducationLevel,FatherEducationLevel,ChildPerceptionsOfRacismInChildrenAndYouth,ParentLatinoValuesScale,ParentAsianValuesScale
+EFC,EFC_1001C1,M,11/6/16,"95,000",N/A,N/A,"Bastrop, Texas",0.51,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1001C2,M,11/5/16,"95,000",N/A,N/A,"Bastrop, Texas",0.51,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1001C3,M,11/5/16,"95,000",N/A,N/A,"Bastrop, Texas",0.51,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1001C4,M,11/6/16,"95,000",N/A,N/A,"Bastrop, Texas",0.51,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1003C1,M,11/13/16,"95,000",N/A,N/A,"Travis, Texas",0.08,"Black, not of Hispanic Origin",N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,3,N/A,N/A,N/A
+EFC,EFC_1003C2,M,11/19/16,"95,000",N/A,N/A,"Travis, Texas",0.08,"Black, not of Hispanic Origin",N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,3,N/A,N/A,N/A
+EFC,EFC_1008C1,M,12/10/16,"99,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1008C2,M,12/10/16,"99,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1009C1,F,12/11/16,"150,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1009C2,M,12/11/16,"150,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1011C1,F,12/11/16,"66,560",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,3,N/A,N/A,N/A
+EFC,EFC_1011C2,F,12/11/16,"66,560",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,3,N/A,N/A,N/A
+EFC,EFC_1012C1,M,12/18/16,"175,000",N/A,N/A,"Blanco, Texas",0.19,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1012C2,F,12/18/16,"175,000",N/A,N/A,"Blanco, Texas",0.19,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1012C3,F,12/18/16,"175,000",N/A,N/A,"Blanco, Texas",0.19,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1014C1,M,12/21/16,"100,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1014C2,M,12/21/16,"100,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1016C1,F,1/7/17,"275,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1017C1,M,1/8/17,"70,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,3,N/A,N/A,N/A,N/A,N/A
+EFC,EFC_1018C1,F,2/26/17,"49,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1018C2,F,2/26/17,"49,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1019C1,M,1/22/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1020C1,F,1/14/17,"180,000",N/A,N/A,"Travis, Texas",0.02,Mixed,N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1021C1,M,1/21/17,"35,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1022C1,F,2/19/17,"90,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1023C1,M,2/18/17,"110,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,4,N/A,N/A,N/A
+EFC,EFC_1026C2,F,2/11/17,"210,000",N/A,N/A,"Hays, Texas",0.4,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1028C1,F,3/5/17,"68,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1028C2,F,3/5/17,"68,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1028C3,M,3/5/17,"68,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1029C1,M,3/11/17,"51,000",N/A,N/A,"Hays, Texas",0.52,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1029C2,M,3/11/17,"51,000",N/A,N/A,"Travis, Texas",0.52,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1030C1,F,4/1/17,N/A,N/A,N/A,"Travis, Texas",0.52,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,5,N/A,N/A,N/A
+EFC,EFC_1030C2,F,4/1/18,N/A,N/A,N/A,"Travis, Texas",0.52,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,5,N/A,N/A,N/A
+EFC,EFC_1031C1,M,3/25/17,"150,000",N/A,N/A,"Williamson, Texas",0.02,Mixed,N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1032C1,M,3/18/17,0,N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,2,N/A,N/A,N/A,N/A
+EFC,EFC_1033C1,F,3/19/17,"120,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1034C1,M,4/16/17,"110,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1036C1,M,3/14/17,"240,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1037C1,F,3/25/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1038C1,M,3/26/17,"75,000",N/A,N/A,"Travis, Texas",0.02,Mixed,Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1040C1,F,4/9/17,"110,000",N/A,N/A,"Bell, Texas",0.04,Mixed,Y,N/A,N/A,Mixed,Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1041C1,M,4/15/17,"62,000",N/A,N/A,"Williamson, Texas",0.02,Mixed,N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1043C1,F,4/22/17,"100,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1043C2,M,4/22/17,"100,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1043C3,M,4/22/17,"100,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1043C4,F,4/21/18,"105,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1049C1,M,5/14/17,"160,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1051C1,M,5/21/17,"300,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,3,N/A,N/A,N/A
+EFC,EFC_1052C2,F,6/5/17,"32,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,"English, Spanish",3,2,N/A,N/A,N/A,N/A
+EFC,EFC_1053C1,M,6/24/17,"137,000",N/A,N/A,"Bastrop, Texas",0.39,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1053C2,F,5/12/18,"120,000",N/A,N/A,"Bastrop, Texas",0.39,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1054C1,M,6/13/17,"170,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1056C1,F,6/11/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1056C2,M,6/11/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1059C1,M,6/26/17,N/A,N/A,N/A,"Harris, Texas",0.28,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,N/A,N/A,N/A,N/A,N/A,N/A
+EFC,EFC_1060C1,M,7/2/17,"230,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1060C2,F,8/10/19,"230,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1061C1,M,7/14/17,"225,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1061C2,F,7/14/17,"225,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1062C1,M,7/8/17,"45,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1064C1,M,8/6/17,"187,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1065C1,F,3/4/18,"110,000",N/A,N/A,"Travis, Texas",0.001,American Indian or Alaskan Native,N,N/A,N/A,American Indian or Alaskan Native,N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1065C2,M,3/4/18,"110,000",N/A,N/A,"Travis, Texas",0.001,American Indian or Alaskan Native,N,N/A,N/A,American Indian or Alaskan Native,N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1065C3,M,3/4/18,"110,000",N/A,N/A,"Travis, Texas",0.001,American Indian or Alaskan Native,N,N/A,N/A,American Indian or Alaskan Native,N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1066C1,M,7/24/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,5,N/A,N/A,N/A
+EFC,EFC_1067C1,M,7/29/17,"110,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1067C2,M,7/29/17,"110,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1068C1,M,7/9/17,"110,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1068C2,M,7/9/17,"110,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1070C1,F,7/8/17,"160,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1070C2,M,7/13/17,"160,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1072C1,M,7/11/17,"52,000",N/A,N/A,"Comal, Texas",0.28,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,"Black, not of Hispanic Origin",N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1075C1,F,7/18/17,"56,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1075C2,F,7/18/17,"80,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1076C2,F,7/20/17,"95,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1077C1,F,9/30/17,"110,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1079C1,F,7/25/17,"215,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1079C2,M,7/25/17,"215,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1079C3,F,7/25/17,"215,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1082C2,M,8/15/17,"55,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,"English, Spanish",3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1082C3,F,8/20/18,"57,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,"English, Spanish",3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1083C1,M,8/14/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1083C2,M,8/14/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1083C3,F,8/14/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1085C1,M,5/12/18,"400,000",N/A,N/A,"Williamson, Texas",0.08,Asian,N,N/A,N/A,Asian,N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Chinese,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1086C1,M,8/19/17,"250,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1086C2,F,8/19/17,"250,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1088C1,F,9/16/17,"125,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1088C2,F,9/16/17,"125,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1089C1,M,8/7/17,"175,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1094C1,F,10/15/17,"70,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1094C2,F,10/15/17,"70,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1095C1,M,11/11/17,"220,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1096C1,F,11/4/17,"85,000",N/A,N/A,"Burnet, Texas",0.22,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1097C1,M,10/21/17,"150,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,4,N/A,N/A,N/A
+EFC,EFC_1097C2,M,10/21/17,"150,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,4,N/A,N/A,N/A
+EFC,EFC_1097C3,M,10/21/17,"150,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,4,N/A,N/A,N/A
+EFC,EFC_1098C1,F,10/22/17,"285,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,5,N/A,N/A,N/A
+EFC,EFC_1099C1,F,10/29/17,"136,000",N/A,N/A,"Travis, Texas",0.08,"Black, not of Hispanic Origin",N,N/A,N/A,"Black, not of Hispanic Origin",N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1100C2,F,11/12/17,"200,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1102C1,M,10/20/17,"100,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1103C1,F,11/18/17,"123,000",N/A,N/A,"Travis, Texas",0.02,Mixed,Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1104C2,F,1/14/18,"92,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1105C1,M,11/1/17,"22,222",N/A,N/A,"Travis, Texas",0.08,"Black, not of Hispanic Origin",N,N/A,N/A,"Black, not of Hispanic Origin",N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,2,N/A,N/A,N/A,N/A
+EFC,EFC_1107C1,F,12/2/17,"150,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1108C1,M,12/9/17,"250,000",N/A,N/A,"Williamson, Texas",0.24,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1108C2,M,12/9/17,"250,000",N/A,N/A,"Williamson, Texas",0.24,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1108C3,F,2/24/19,N/A,N/A,N/A,"Williamson, Texas",0.02,Mixed,Y,N/A,N/A,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1109C1,F,12/9/17,"40,000",N/A,N/A,"Caldwell, Texas",0.53,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1110C1,M,12/10/17,"50,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,2,N/A,N/A,N/A,N/A
+EFC,EFC_1110C2,M,12/10/17,"50,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,2,N/A,N/A,N/A,N/A
+EFC,EFC_1110C3,M,12/10/17,"50,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,2,N/A,N/A,N/A,N/A
+EFC,EFC_1111C1,F,2/4/18,"40,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1113C1,F,2/24/18,"370,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1115C1,F,4/28/18,N/A,N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,N/A,N/A,N/A,N/A,N/A,N/A
+EFC,EFC_1117C1,F,2/10/18,"130,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1118C1,F,3/3/18,"160,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,Italian,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1121C1,F,3/31/18,"140,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1124C1,F,5/26/18,"100,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,English,3,N/A,4,N/A,N/A,N/A
+EFC,EFC_1126C1,F,6/10/18,"66,000",N/A,N/A,"Travis, Texas",0.02,Mixed,Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1127C1,F,6/23/18,"75,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,4,N/A,N/A,N/A
+EFC,EFC_1128C1,F,6/10/18,"1,500,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,,N/A,N/A,N/A,N/A
+EFC,EFC_1129C1,M,6/21/18,"100,000",N/A,N/A,"Williamson, Texas",0.58,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,,N/A,N/A,N/A,N/A
+EFC,EFC_1130C1,F,9/29/18,"50,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,,N/A,N/A,N/A,N/A
+EFC,EFC_1131C1,F,12/8/18,N/A,N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,"English, Spanish",N/A,N/A,N/A,N/A,N/A,N/A
+EFC,EFC_1132C2,F,2/16/19,"102,000",N/A,N/A,"Williamson, Texas",0.24,Hispanic or Latino (Multiracial Hispanic or Latino),Y,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1133C1,M,3/31/19,"98,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1133C2,M,3/31/19,"98,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,4,N/A,N/A,N/A,N/A
+EFC,EFC_1134C1,M,4/13/19,"165,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1137C1,F,7/6/19,"22,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,"English, Spanish",3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1137C2,F,7/6/19,"22,000",N/A,N/A,"Travis, Texas",0.33,Hispanic or Latino (NOTmulti-racially Hispanic or Latino),Y,N/A,N/A,Hispanic or Latino (NOT multi-racially Hispanic or Latino),Y,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,"English, Spanish",3,3,N/A,N/A,N/A,N/A
+EFC,EFC_1138C1,M,6/20/19,"100,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,While (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,English,3,N/A,4,N/A,N/A,N/A
+EFC,EFC_1139C1,M,11/2/19,"250,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+EFC,EFC_1139C2,M,11/2/19,"250,000",N/A,N/A,"Travis, Texas",0.48,White (Not of Hispanic Origin),N,N/A,N/A,White (Not of Hispanic Origin),N,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,English,3,5,N/A,N/A,N/A,N/A
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,Travis,,89,0.659259259,,,,,,,,,,,,,,,,,,,
+,,,,,,,Williamsoon,,1,0.007407407,,,,,,,,,,,,,,,,,,,
+,,,,,,,Caldwell,,8,0.059259259,,,,,,,,,,,,,,,,,,,
+,,,,,,,Burnet,,14,0.103703704,,,,,,,,,,,,,,,,,,,
+,,,,,,,Comal,,3,0.022222222,,,,,,,,,,,,,,,,,,,
+,,,,,,,Harris,,4,0.02962963,,,,,,,,,,,,,,,,,,,
+,,,,,,,Bastrop,,16,0.118518519,0.222222222,,,,,,,,,,,,,,,,,,
+,,,,,,,Bell,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,Hays,,135,,,,,,,,,,,,,,,,,,,,
+,,,,,,,Blanco,,,,,,,,,,,,,,,,,,,,,,
