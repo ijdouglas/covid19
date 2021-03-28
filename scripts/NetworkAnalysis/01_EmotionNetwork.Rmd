@@ -1,0 +1,126 @@
+---
+title: "Emotion network"
+author: "Ian Douglas"
+date: "2/17/2021"
+output: html_document
+---
+```{r, message=FALSE, warning=FALSE, results='hold'}
+library(tidyverse)
+library(EGAnet)
+box_path = Sys.glob("~/Box/*/covid19")
+readRDS.box = function(file, ...) {readRDS(file.path(box_path, file), ...)}
+saveRDS.box = function(object, file, ...) {saveRDS(object, file.path(box_path, file), ...)}
+read_csv.box = function(file, ...) {read_csv(file.path(box_path, file), ...)}
+write.csv.box = function(object, file, ...) {write.csv(object, file.path(box_path, file), ...)}
+```
+
+# Read in the data
+```{r}
+CaspeEmotional <- readRDS(file.path(box_path, "data/CaspeEmotional.rds"))
+```
+
+# Caspe emotion network
+```{r}
+caspe.emo.ega = EGAnet::EGA(
+  data = CaspeEmotional %>% select(-ID),
+  model = 'glasso', algorithm = 'louvain', plot.EGA = F
+)
+```
+
+# Plot the network, and view the clusters
+```{r}
+plot(caspe.emo.ega)
+net.loads(caspe.emo.ega)
+```
+
+```{r}
+
+```
+
+# Now a version treating the ordinal variables as continuous.
+# Note that the higher numbers correspond to more endorsement of the emotion,
+# irrespective of the valence.
+```{r}
+caspe.emo.ega.continuous = EGAnet::EGA(
+  data = CaspeEmotional %>% select(-ID) %>% mutate_all(as.numeric),
+  model = 'glasso', algorithm = 'louvain', plot.EGA = F
+)
+```
+```{r}
+net.scores(data= CaspeEmotional %>% select(-ID) %>% mutate_all(as.numeric),
+           A = caspe.emo.ega.continuous)$std.scores
+```
+
+# View the network and loadings
+```{r}
+plot(caspe.emo.ega.continuous)
+net.loads(caspe.emo.ega.continuous)
+std.continuous.ldngs = net.loads(caspe.emo.ega.continuous)$std
+```
+# Standardized scores for participants
+```{r}
+std_network_scores.continuous = net.scores(ContinuousData, caspe.emo.ega.continuous)$std.scores
+car::scatterplotMatrix(std_network_scores.continuous)
+```
+
+# For better interpretation, collect the loadings into a data frame
+```{r}
+loadings.continuous = net.loads(caspe.emo.ega.continuous)$std %>%
+       rownames_to_column('Variable') %>%
+       pivot_longer(-Variable, names_to = 'Cluster', values_to='Loading') %>%
+       group_by(Cluster) %>%
+       arrange(.by_group = TRUE, desc(abs(Loading)))
+loadings.continuous
+```
+
+
+
+# Finally, a version with continuous variables, but dropping the questions
+# asking them to retroactively report which emotions they felt *more* than before.
+("Concurrent" emotion-sampling only)
+```{r}
+caspe.emoConcurrent.ega.continuous = EGAnet::EGA(
+  data = CaspeEmotional %>% select(-ID, -starts_with('More')) %>% mutate_all(as.numeric),
+  model = 'glasso', algorithm = 'louvain', plot.EGA = F
+)
+plot(caspe.emoConcurrent.ega.continuous)
+concurrent.loadings = net.loads(caspe.emoConcurrent.ega.continuous)$std
+concurrent.ldngs.df = concurrent.loadings %>%
+       rownames_to_column('Variable') %>%
+       pivot_longer(-Variable, names_to = 'Cluster', values_to='Loading') %>%
+       group_by(Cluster) %>%
+       arrange(.by_group = TRUE, desc(abs(Loading)))
+#view(concurrent.loadings)
+```
+
+
+```{r}
+most_recent_mental_health = readRDS("../../../Data/Cleaned/EF_CAPE_FINAL.rds")
+emotional.scores = data.frame(ID = CaspeEmotional$ID, 
+                              Scores = net.scores(data= CaspeEmotional %>% 
+                                                    select(-ID) %>% 
+                                                    mutate_all(as.numeric),
+                                                  A = caspe.emo.ega.continuous)$std.scores,
+                              stringsAsFactors = F)
+caspeOutcomes.plusEmotional = left_join(
+  x = emotional.scores, 
+  y = most_recent_mental_health %>%
+    select(ID, ADHD),
+  by = "ID")
+```
+
+
+```{r}
+summary(lm(Scores.1 ~ ADHD, data = caspeOutcomes.plusEmotional))
+```
+
+```{r}
+summary(lm(Scores.2 ~ ADHD, data = caspeOutcomes.plusEmotional))
+```
+
+```{r}
+summary(lm(Scores.3 ~ ADHD, data = caspeOutcomes.plusEmotional))
+```
+
+
+

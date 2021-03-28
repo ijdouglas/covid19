@@ -1,0 +1,162 @@
+---
+title: "Behavior Network"
+output: html_document
+---
+```{r, message=FALSE, warning=FALSE, results='hold'}
+library(tidyverse)
+library(psych)
+library(GPArotation)
+box_path = Sys.glob("~/Box/*/covid19")
+readRDS.box = function(file, ...) {readRDS(file.path(box_path, file), ...)}
+saveRDS.box = function(object, file, ...) {saveRDS(object, file.path(box_path, file), ...)}
+read_csv.box = function(file, ...) {read_csv(file.path(box_path, file), ...)}
+write.csv.box = function(object, file, ...) {write.csv(object, file.path(box_path, file), ...)}
+```
+
+
+#### Define some helper functions
+```{r}
+ViewLoadings = function(.efa, .rotation) {
+  View(as.matrix(match.fun(.rotation)(.efa$loadings)$loadings))
+}
+# For examining cross-loadings (and printing out RMSEA and TLI)
+check_cross_loadings = function(.efa) 
+{
+  .ldngs <- .efa$loadings
+  check_loadings = function(new_rotation_function_name, .l)
+  {
+    new = try(match.fun(new_rotation_function_name)(.l))
+    try(table(apply(as.matrix(loadings(new)), 1, function(x) sum(x > .3))))
+  }
+  all_possible_rotations = ls("package:GPArotation")
+  all_possible_rotations = setNames(all_possible_rotations, all_possible_rotations)
+  map(all_possible_rotations, check_loadings, .ldngs) %>%
+    Filter(length, .) %>%
+    Filter(function(x) !'try-error' %in% class(x), .) %>%
+    imap_dfr(~{
+      number_cross_loadings_total = ifelse(max(.x) == 2,
+                                           sum(.x[.x >= 2]),
+                                           .x[length(.x)])
+      list('rotation' = .y,
+           'max_cross_loadings' = names(.x)[length(.x)],
+           'number_cross_loadings_max' = as.vector(.x)[length(.x)],
+           'number_cross_loadings_total' = number_cross_loadings_total
+      )
+  })
+}
+# For fitting the FA to the above data, but with variable settings
+fa_fit = function(.method., .num.factor., .data, .R)
+{
+  out <- fa(
+    r = .R, 
+    nfactors = .num.factor., 
+    n.obs = nrow(.data), 
+    rotate = 'none', # Note, using varimax rotation
+    covar = FALSE, 
+    fm = .method.
+  )
+  out$Call$fm <- .method. # (so that it doesn't appear as ".method.")
+  out
+}
+```
+
+# Read in the behavior data
+```{r}
+beha = readRDS.box(file='data/BehaviorDataEGA.rds')
+```
+
+# Compute the phi matrix
+```{r}
+#factorAnalysisPhi <- phi_matrix(factorAnalysisData %>% select(-ID) %>% as.matrix)
+# For all binary items, this is equivalent to a Pearson correlation matrix
+factorAnalysisPhi <- round(cor(beha %>% select(-ID),
+                               use = 'pairwise.complete'), 4)
+```
+
+
+# Run the parallel analysis
+```{r}
+para <- factorAnalysisPhi %>% 
+  fa.parallel(x = ., n.obs = nrow(factorAnalysisData), plot = F)
+```
+
+
+# Fit the FA
+
+UPDATE: skip this chunk for now. We fit many FA with different settings and num. 
+factors, and evaluate:
+
+-Cross loadings
+-RMSEA
+-Tucker-Lewis Index
+
+# Explore and optimize for cross-loadings, RMSEA, and TLI
+```{r}
+# Fit a bunch of FA options
+fa_list = list(
+  fa.pa.6 = fa_fit('pa', 6, beha, factorAnalysisPhi),
+  fa.pa.7 = fa_fit('pa', 7, beha, factorAnalysisPhi),
+  fa.pa.8 = fa_fit('pa', 8, beha, factorAnalysisPhi),
+  fa.pa.9 = fa_fit('pa', 9, beha, factorAnalysisPhi),
+  fa.pa.10 = fa_fit('pa', 10, beha, factorAnalysisPhi),
+  fa.ml.6 = fa_fit('ml', 6, beha, factorAnalysisPhi),
+  fa.ml.7 = fa_fit('ml', 7, beha, factorAnalysisPhi),
+  fa.ml.8 = fa_fit('ml', 8, beha, factorAnalysisPhi),
+  fa.ml.9 = fa_fit('ml', 9, beha, factorAnalysisPhi),
+  fa.ml.10 = fa_fit('ml', 10, beha, factorAnalysisPhi)
+)
+# Summarize all of the above FA models use the check_cross_loadings()
+fa_table = imap(fa_list, ~{
+  check_cross_loadings(.x) %>%
+    filter(max_cross_loadings <= 2) %>%
+    arrange(max_cross_loadings, number_cross_loadings_max) %>%
+    mutate(settings = .y) %>%
+    mutate(RMSEA = .x$RMSEA[1], TLI = .x$TLI)
+}) %>%
+  # Summarize into one data frame with results:
+  reduce(rbind) %>%
+  select(settings, RMSEA, TLI, everything())
+# View the best results (no cross-loadings)
+View(fa_table %>% 
+       filter(max_cross_loadings == 1) %>%
+       arrange(RMSEA))
+# View and save the best models, which will undergo bootstrap analysis
+saveRDS(fa_list$fa.ml.10, file.path(box_path, "output/no-rotation.fa.ml.10.rds"))
+saveRDS(fa_list$fa.pa.7, file.path(box_path, "output/no-rotation.fa.pa.7.rds"))
+View(fa_table %>% 
+       filter(settings %in% c("fa.ml.10", "fa.pa.7")) %>%
+       filter(max_cross_loadings == 1) %>%
+       arrange(RMSEA))
+# View loadings of the best alternatives
+ViewLoadings(fa_list$fa.ml.10, Varimax)
+ViewLoadings(fa_list$fa.pa.7, infomaxT)
+ViewLoadings(fa_list$fa.pa.7, mccammon)
+ViewLoadings(fa_list$fa.pa.7, infomaxQ)
+```
+
+
+**Notes.**
+ The best solutions included the 10 factor solution, solved using max. likelihood 
+ and rotated using varimax rotation. Next, three 7 principal axis solutions, 
+ using rotations infomaxT, infomaxQ and mccammon achieved no cross-loadings and
+ good (but not as good) RMSEA and/or TLI.
+ 
+ 
+# Bootstrap analysis to find the optimal solution
+```{r}
+
+```
+
+```{r}
+beh.fa.final = fa(
+  r=factorAnalysisPhi, n.obs = nrow(beha), nfactors = 10, fm='ml',
+  rotate = 'varimax', covar=F
+)
+beh.scores = predict(beh.fa.final, beha[-1])
+```
+ 
+
+```{r}
+View(unclass(loadings(beh.fa.final)))
+```
+

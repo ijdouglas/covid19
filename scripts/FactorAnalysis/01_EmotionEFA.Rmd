@@ -1,0 +1,152 @@
+---
+title: "Emotion network"
+author: "Ian Douglas"
+date: "2/17/2021"
+output: html_document
+---
+```{r, message=FALSE, warning=FALSE, results='hold'}
+library(tidyverse)
+library(psych)
+library(GPArotation)
+library(polycor)
+box_path = Sys.glob("~/Box/*/covid19")
+readRDS.box = function(file, ...) {readRDS(file.path(box_path, file), ...)}
+saveRDS.box = function(object, file, ...) {saveRDS(object, file.path(box_path, file), ...)}
+read_csv.box = function(file, ...) {read_csv(file.path(box_path, file), ...)}
+write.csv.box = function(object, file, ...) {write.csv(object, file.path(box_path, file), ...)}
+```
+
+
+#### Define some helper functions
+```{r}
+ViewLoadings = function(.efa, .rotation) {
+  View(as.matrix(.rotation(.efa$loadings)$loadings))
+}
+# For examining cross-loadings (and printing out RMSEA and TLI)
+check_cross_loadings = function(.efa) 
+{
+  .ldngs <- .efa$loadings
+  check_loadings = function(new_rotation_function_name, .l)
+  {
+    new = try(match.fun(new_rotation_function_name)(.l))
+    try(table(apply(as.matrix(loadings(new)), 1, function(x) sum(x > .3))))
+  }
+  all_possible_rotations = ls("package:GPArotation")
+  all_possible_rotations = setNames(all_possible_rotations, all_possible_rotations)
+  map(all_possible_rotations, check_loadings, .ldngs) %>%
+    Filter(length, .) %>%
+    Filter(function(x) !'try-error' %in% class(x), .) %>%
+    imap_dfr(~{
+      number_cross_loadings_total = ifelse(max(.x) == 2,
+                                           sum(.x[.x >= 2]),
+                                           .x[length(.x)])
+      list('rotation' = .y,
+           'max_cross_loadings' = names(.x)[length(.x)],
+           'number_cross_loadings_max' = as.vector(.x)[length(.x)],
+           'number_cross_loadings_total' = number_cross_loadings_total
+      )
+  })
+}
+# For fitting the FA to the above data, but with variable settings
+fa_fit = function(.method., .num.factor., .data, .R)
+{
+  out <- fa(
+    r = .R, 
+    nfactors = .num.factor., 
+    n.obs = nrow(.data), 
+    rotate = 'none', # Note, using varimax rotation
+    covar = FALSE, 
+    fm = .method.
+  )
+  out$Call$fm <- .method. # (so that it doesn't appear as ".method.")
+  out
+}
+```
+
+
+# Read in the data
+```{r}
+CaspeEmotional <- readRDS(file.path(box_path, "data/CaspeEmotional.rds"))
+# Format for factor analysis:
+emo.FA.dat = CaspeEmotional %>% 
+  column_to_rownames('ID') %>%
+  mutate_all(as.numeric)
+```
+
+
+# Compute correlation matrix
+
+*Since all variables are ordinal, use the Spearman correlation
+```{r}
+factorAnalysisCorr = round(cor(emo.FA.dat,
+                               use = 'pairwise.complete',
+                               method = 'spearman'), 4)
+```
+
+
+# Parallel analysis
+```{r}
+emo.para = fa.parallel(x = factorAnalysisCorr, 
+                       n.obs = nrow(factorAnalysisCorr), 
+                       plot = F)
+```
+
+
+# Fit candidate models
+```{r}
+emo.fa_list = list(
+  fa.pa.2 = fa_fit('pa', 2, emo.FA.dat, factorAnalysisCorr),
+  fa.pa.3 = fa_fit('pa', 3, emo.FA.dat, factorAnalysisCorr),
+  fa.pa.4 = fa_fit('pa', 4, emo.FA.dat, factorAnalysisCorr),
+  fa.pa.5 = fa_fit('pa', 5, emo.FA.dat, factorAnalysisCorr),
+  fa.pa.6 = fa_fit('pa', 6, emo.FA.dat, factorAnalysisCorr),
+  fa.ml.2 = fa_fit('ml', 2, emo.FA.dat, factorAnalysisCorr),
+  fa.ml.3 = fa_fit('ml', 3, emo.FA.dat, factorAnalysisCorr),
+  fa.ml.4 = fa_fit('ml', 4, emo.FA.dat, factorAnalysisCorr),
+  fa.ml.5 = fa_fit('ml', 5, emo.FA.dat, factorAnalysisCorr),
+  fa.ml.6 = fa_fit('ml', 6, emo.FA.dat, factorAnalysisCorr)
+)
+```
+
+
+# Evaluate results
+```{r}
+emo.fa_table = imap(emo.fa_list, ~{
+  check_cross_loadings(.x) %>%
+    filter(max_cross_loadings <= 2) %>%
+    arrange(max_cross_loadings, number_cross_loadings_max) %>%
+    mutate(settings = .y) %>%
+    mutate(bic=.x$BIC, RMSEA = .x$RMSEA[1], TLI = .x$TLI)
+}) %>%
+  # Summarize into one data frame with results:
+  reduce(rbind) %>%
+  select(settings, bic, RMSEA, TLI, everything())
+# print the results:
+emo.fa_table %>% arrange(bic)
+```
+
+
+# Given the results, view the loadings for interpretation
+```{r}
+ViewLoadings(emo.fa_list$fa.pa.2, bifactorT)
+```
+
+
+# Final model
+```{r}
+emotion.efa = fa(
+  r = factorAnalysisCorr,
+  nfactors = 2, 
+  n.obs = nrow(emo.FA.dat), 
+  #rotate = 'bifactor',
+  covar = FALSE, 
+  fm = "ml" # had slightly better fit indices
+)
+```
+
+
+# Scores
+```{r}
+emo.scores = predict(emotion.efa, emo.FA.dat)
+```
+

@@ -1,0 +1,56 @@
+---
+title: "Behavior Network"
+output: html_document
+---
+```{r, message=FALSE, warning=FALSE, results='hold'}
+library(tidyverse)
+library(EGAnet)
+box_path = Sys.glob("~/Box/*/covid19")
+glob.path = function(...) {Sys.glob(file.path(...))}
+readRDS.box = function(file, ...) {readRDS(glob.path(box_path, file), ...)}
+saveRDS.box = function(object, file, ...) {saveRDS(object, glob.path(box_path, file), ...)}
+read_csv.box = function(file, ...) {read_csv(glob.path(box_path, file), ...)}
+write.csv.box = function(object, file, ...) {write.csv(object, glob.path(box_path, file), ...)}
+```
+
+
+# Read in the behavior data
+```{r}
+beha = readRDS.box(file='data/BehaviorDataEGA.rds')
+```
+
+
+# Conduct a full sample EGA
+```{r}
+beha.ega = EGAnet::EGA(
+  data = beha %>% column_to_rownames('ID'), # put the subject IDs on rownames
+  model = 'glasso', algorithm = 'louvain', plot.EGA = F
+)
+```
+
+
+# Save results
+```{r}
+saveRDS.box(object=beha.ega, file="output/behaviorEGA.rds")
+saveRDS.box(object=net.loads(beha.ega)$std, file="output/behaviorEGA-StandardizedLoadings.rds")
+```
+
+
+# Interpret results (loadings)
+
+-Plot the loadings for interpretation
+```{r}
+beha.ega <- readRDS.box('output/behaviorEGA.rds')
+beha.load.std <- readRDS.box('output/behaviorEGA-Standardized*rds')
+imap(beha.load.std, ~{
+  tibble(Variable=rownames(beha.load.std), Loading=.x, Factor = .y) %>%
+    arrange(desc(abs(Loading))) %>%
+    # Take the top 20 variables
+    slice(1:20) %>%
+    mutate_at('Variable', ~factor(., levels = rev(.))) %>%
+    ggplot(aes(x = Loading, y = Variable)) +
+    geom_point() +
+    ggtitle(.y)
+})
+```
+

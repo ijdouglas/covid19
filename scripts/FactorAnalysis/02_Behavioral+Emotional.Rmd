@@ -1,0 +1,105 @@
+---
+title: "Associations of behavioral and emotional factors"
+author: "Ian Douglas"
+date: "3/27/2021"
+output: html_document
+---
+```{r, message=FALSE, warning=FALSE, results='hold'}
+library(tidyverse)
+library(psych)
+library(GPArotation)
+library(polycor)
+library(randomForest)
+box_path = Sys.glob("~/Box/*/covid19")
+readRDS.box = function(file, ...) {readRDS(file.path(box_path, file), ...)}
+saveRDS.box = function(object, file, ...) {saveRDS(object, file.path(box_path, file), ...)}
+read_csv.box = function(file, ...) {read_csv(file.path(box_path, file), ...)}
+write.csv.box = function(object, file, ...) {write.csv(object, file.path(box_path, file), ...)}
+```
+
+
+# First, try a join EFA with both datasets merged
+### Read in the data
+```{r, message=F, warning=F}
+CaspeEmotional <- readRDS(file.path(box_path, "data/CaspeEmotional.rds"))
+CaspeBehavior <- readRDS.box(file='data/BehaviorDataEGA.rds')
+emo_beh = merge(CaspeEmotional, 
+                CaspeBehavior %>% mutate(across(where(~n_distinct(.) <= 2), as.factor)))
+# Compute heterogenous correlation matrix
+het_corr = hetcor(emo_beh[-1], pd = T)
+```
+
+
+# Fit FA
+```{r}
+emo_beh.para = fa.parallel(x = het_corr$correlations, 
+                       n.obs = nrow(emo_beh), 
+                       plot = F)
+```
+
+
+# Consensus is on 14. Fit alternative models:
+```{r}
+emo_beh.fa.list = list(
+  fa.pa.14 = fa_fit('pa', emo_beh.para$ncomp, emo_beh, het_corr$correlations),
+  fa.ml.14 = fa_fit('ml', emo_beh.para$nfact, emo_beh, het_corr$correlations)
+)
+# Print the loadings table to check for cross loadings and fit indices
+imap(emo_beh.fa.list, ~{
+  check_cross_loadings(.x) %>%
+    #filter(max_cross_loadings <= 2) %>%
+    arrange(max_cross_loadings, number_cross_loadings_max) %>%
+    mutate(settings = .y) %>%
+    mutate(RMSEA = .x$RMSEA[1], TLI = .x$TLI)
+}) %>%
+  # Summarize into one data frame with results:
+  reduce(rbind) %>%
+  select(settings, RMSEA, TLI, everything())
+```
+
+
+**No model fits well.**
+
+
+# Model the associations between the two data sets as seperate units
+```{r}
+summary(lm(cbind(
+  beh.scores[,1], 
+  beh.scores[,2],
+  beh.scores[,3],
+  beh.scores[,4],
+  beh.scores[,5],
+  beh.scores[,6],
+  beh.scores[,7],
+  beh.scores[,8],
+  beh.scores[,9],
+  beh.scores[,10]) ~ emo.scores))
+```
+
+
+# Predict the behavior factors from emotion
+-Drop the "more" variables
+```{r}
+rf_dat = CaspeEmotional %>% select(-starts_with('More')) %>%
+  merge(cbind(CaspeBehavior["ID"], beh.scores), by = 'ID') %>%
+  drop_na
+
+forest_models = lapply(grep("^ML", names(rf_dat), value = T), function(nm) {
+  tmp.dat = rf_dat %>% select(all_of(nm), ID:Appreciative) %>%
+    # ID:Appreciative are the names in CaspeEmotional (without the 'More' variables)
+    column_to_rownames('ID') %>%
+    rename_at(1, ~'behavior')
+  randomForest(behavior ~ ., data = tmp.dat,
+               mtry = round(sqrt(ncol(CaspeEmotional))), 
+               ntree=1000,
+               importance = T)
+})
+imap(forest_models, ~{
+  varImpPlot(
+    type = 1,
+    .x,
+    main = paste0('Behavioral Factor: ', .y, '\nR^2: ', round(tail(.x$rsq, 1), 4)))
+})
+
+```
+
