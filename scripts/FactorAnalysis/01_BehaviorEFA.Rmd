@@ -6,6 +6,7 @@ output: html_document
 library(tidyverse)
 library(psych)
 library(GPArotation)
+library(abind)
 box_path = Sys.glob("~/Box/*/covid19")
 readRDS.box = function(file, ...) {readRDS(file.path(box_path, file), ...)}
 saveRDS.box = function(object, file, ...) {saveRDS(object, file.path(box_path, file), ...)}
@@ -121,8 +122,8 @@ View(fa_table %>%
        filter(max_cross_loadings == 1) %>%
        arrange(RMSEA))
 # View and save the best models, which will undergo bootstrap analysis
-saveRDS(fa_list$fa.ml.10, file.path(box_path, "output/no-rotation.fa.ml.10.rds"))
-saveRDS(fa_list$fa.pa.7, file.path(box_path, "output/no-rotation.fa.pa.7.rds"))
+saveRDS(fa_list$fa.ml.10, file.path(box_path, "output/FactorAnalysis/no-rotation.fa.ml.10.rds"))
+saveRDS(fa_list$fa.pa.7, file.path(box_path, "output/FactorAnalysis/no-rotation.fa.pa.7.rds"))
 View(fa_table %>% 
        filter(settings %in% c("fa.ml.10", "fa.pa.7")) %>%
        filter(max_cross_loadings == 1) %>%
@@ -143,20 +144,373 @@ ViewLoadings(fa_list$fa.pa.7, infomaxQ)
  
  
 # Bootstrap analysis to find the optimal solution
-```{r}
 
+* This was run on a remote server with a large parallel backend.
+* The following code chunk is was used to generate the bootstrap analysis outputs 
+that are processed in the chunk after this one:
+```{r}
+# First, functions that appear below are sourced from 'functions' (within this dir)
+sapply(list.files('functions', full.names = T), source)
+# The first step was to add two items to the fa_list object:
+# (1) A rotated version of the loadings for each of the two models
+# (2) The target matrix derived from said rotated loadings.
+# That code was like the following:
+# fa_list$fa.ml.10$rotated_loadings$Varimax <- Varimax(fa_list$fa.ml.10$loadings)$loadings
+# fa_list$fa.ml.10$TargetMatrix$Varimax <- 
+#   get_target_mat(fa_list$fa.ml.10$rotated_loadings$Varimax)
+# This was repeated three times for the fa_list$fa.pa.7 object,
+# once for each rotation of interest. Here we read in a new, fa_list, that contains
+# only those four models of interest, augmented with rotated loading and target matrices
+fa_list <- readRDS('../../output/FactorAnalysis/no-rotation_fa_list.rds')
+
+# To fit one bootstrap analysis (so, to assess the reliability of one of the abovementioned
+# four models contained in `fa_list`)
+
+# boot2k.ml10.Varimax = boot_fa_pipeline(
+#   B=2000,
+#   DATA=factorAnalysisData %>% select(-ID),
+#   NFACT=10,
+#   SOLVER='ml',
+#   .ROTATED=fa_list$fa.ml.10$rotated_loadings$Varimax,
+#   .TARGET=fa_list$fa.ml.10$TargetMatrix$Varimax,
+#   CORES=detectCores()
+# )
 ```
 
+
+# Read in the results of the bootstrap pipelines for processing
+
 ```{r}
-beh.fa.final = fa(
-  r=factorAnalysisPhi, n.obs = nrow(beha), nfactors = 10, fm='ml',
-  rotate = 'varimax', covar=F
+boot_res = list(
+  ml10.Varimax=readRDS(
+      '../../output/FactorAnalysis/boot2k.ml10.Varimax-RAW_RESULTS_2020-03-28.rds'),
+  pa7.mccammon = readRDS(
+      '../../output/FactorAnalysis/boot2k.pa7.mccammon-RAW_RESULTS_2020-03-28.rds'),
+  pa7.bentlerT= readRDS(
+      '../../output/FactorAnalysis/boot2k.pa7.bentlerT-RAW_RESULTS_2020-03-28.rds'),
+  pa7.bentlerQ = readRDS(
+      '../../output/FactorAnalysis/boot2k.pa7.bentlerQ-RAW_RESULTS_2020-03-28.rds')
 )
-beh.scores = predict(beh.fa.final, beha[-1])
 ```
  
 
+# Process/summarize
 ```{r}
-View(unclass(loadings(beh.fa.final)))
+NA_if_null = function(x) if (is.null(x)) {return(NA_real_)} else return(x)
+boot_results = lapply(boot_res, function(model) {
+  # Collect matrices of loadings where elements are means, and SDs of 2000 bootstraps
+  loadings_means = apply(
+    abind(lapply(model, function(L) L$Loadings), along = 3),
+    MARGIN = 1:2, FUN = mean)
+  loadings_SDs = apply(
+    abind(lapply(model, function(L) L$Loadings), along = 3),
+    MARGIN = 1:2, FUN = sd)
+  #Eigenvalue vectors can be summarized into mean and SD vectors (nfactors x 1)
+  eig_means = colMeans(purrr::map(model, pluck, "eigenvalues") %>% 
+                         reduce(c) %>% 
+                         matrix(ncol = 10, byrow = T))
+  eig_SDs = purrr::map(model, pluck, "eigenvalues") %>% 
+    reduce(c) %>% 
+    matrix(ncol = 10, byrow = T) %>%
+    apply(., 2, sd)
+  EIGENVALUES = list('Mean' = eig_means, 'SD' = eig_SDs)
+  # Correspondences have same dimensions as eigenvalues
+  corr_means = colMeans(purrr::map(model, pluck, "correspondence") %>% 
+                          reduce(c) %>% 
+                          matrix(ncol = 10, byrow = T))
+  corr_SDs = purrr::map(model, pluck, "correspondence") %>% 
+    reduce(c) %>% 
+    matrix(ncol = 10, byrow = T) %>%
+    apply(., 2, sd)
+  CORRESPONDENCE = list('Mean' = corr_means, 'SD' = corr_SDs)
+  # Bootstrap distributions of fit statistics and other scalar values
+  RMSEA=sapply(model, function(x) NA_if_null(pluck(x, 'RMSEA')[1])) %>% unlist %>% as.vector
+  TLI=sapply(model, function(x) NA_if_null(pluck(x, 'TLI')[1])) %>% unlist %>% as.vector
+  ChiSq=sapply(model, function(x) NA_if_null(pluck(x, 'ChiSq')[1])) %>% unlist %>% as.vector
+  p=sapply(model, function(x) NA_if_null(pluck(x, 'p')[1])) %>% unlist %>% as.vector
+  # Compile outputs and save to folder
+  out = list(
+    'BFA' = list('Stats' = data.frame(RMSEA=RMSEA, TLI=TLI, ChiSq=ChiSq, p=p),
+                 'Loadings' = list('Means' = loadings_means,
+                                   'SD' = loadings_SDs),
+                 'Eigenvalues' = EIGENVALUES,
+                 'Correspondence' = CORRESPONDENCE))
+})
+# Finally, since we created a new copy of the original model, we can delete the
+# version to clear up space in the R session memory
+rm(boot_res)
+```
+
+
+# Visualize the distributions of the fit statistics
+```{r}
+# Stats summaries is a bit of a misnomer, this object just collects the vectors
+# containing the bootstrap distributions of the desired statistic (RMSEA, TLI, etc)
+stats_summaries = imap_dfr(boot_results, ~{
+  pluck(.x$BFA, "Stats") %>% mutate(model = .y)
+}) %>%
+  pivot_longer(cols=-model, names_to='Stat', values_to='Value')
+```
+
+
+## Plots
+ The loadings rotation doesn't effect the fit statistics. So, concatenate each of
+ the results pertaining to the principal axes solution. Also, we don't care about the p value.
+```{r}
+stats_summaries %>% 
+  filter(!Stat %in% 'p') %>% 
+  mutate_at('model', ~sub('\\..+$', '', .)) %>%
+  ggplot(., aes(x = Value, fill = model)) +
+  geom_density(alpha = .7) +
+  facet_wrap(~Stat, nrow = 2, scales = 'free')
+```
+
+
+# Compute the bootstrap MSE via bias-variance decomposition
+```{r}
+# Again, simply concatenate the pa.7 solutions because they are all identical
+MSE_summaries = stats_summaries %>% 
+  filter(!Stat %in% 'p') %>% 
+  mutate_at('model', ~sub('\\..+$', '', .)) %>% 
+  group_by(model, Stat) %>%
+  # Trick to concatenate the three that are the same model:
+  summarise(Value = sample(na.omit(Value), size = 2000)) %>%
+  mutate(Observed = case_when(
+    (grepl('ml10', model) & grepl('RMSEA', Stat)) ~ fa_list$fa.ml.10$RMSEA[1],
+    (grepl('ml10', model) & grepl('TLI', Stat)) ~ fa_list$fa.ml.10$TLI,
+    (grepl('ml10', model) & grepl('ChiSq', Stat)) ~ fa_list$fa.ml.10$STATISTIC,
+    (grepl('pa7', model) & grepl('RMSEA', Stat)) ~ fa_list$fa.pa.7$RMSEA[1],
+    (grepl('pa7', model) & grepl('TLI', Stat)) ~ fa_list$fa.pa.7$TLI,
+    (grepl('pa7', model) & grepl('ChiSq', Stat)) ~ fa_list$fa.pa.7$STATISTIC
+  )) %>%
+  summarise(MSE = mean((Value - Observed[1])^2, na.rm = T) + var(Value, na.rm = T))
+### bootstrap bias
+mean(median.boot$t) - median.boot$t0
+
+### bootstrap variance
+var(median.boot$t)
+
+### bootstrap MSE
+mean((median.boot$t-median.boot$t0)^2)
+```
+
+# Compute the t-statistics
+- Only two t-statistics to compare for each stat: one for the 10-factor solution and one for 
+the 7 principal axes (PA) solution since the fit statistics are the same for all PA models
+```{r}
+SDs=stats_summaries %>% 
+  mutate_at('model', ~sub('\\..+$', '', .)) %>%
+  group_by(model, Stat) %>% 
+  summarize(SD = sd(Value, na.rm = T))
+data.frame(
+ml10_rmsea_t = fa_list$fa.ml.10$RMSEA[1] / SDs %>% filter(model=="ml10", Stat=='RMSEA') %>% .$SD,
+pa7_rmsea_t = fa_list$fa.pa.7$RMSEA[1] / SDs %>% filter(model=="pa7", Stat=='RMSEA') %>% .$SD,
+ml10_tli_t = fa_list$fa.ml.10$TLI / SDs %>% filter(model=="ml10", Stat=='TLI') %>% .$SD,
+pa7_tli_t = fa_list$fa.pa.7$TLI / SDs %>% filter(model=="pa7", Stat=='TLI') %>% .$SD,
+ml10_chi_t = fa_list$fa.ml.10$STAT / SDs %>% filter(model=="ml10", Stat=='ChiSq') %>% .$SD,
+pa7_chi_t = fa_list$fa.pa.7$STAT / SDs %>% filter(model=="pa7", Stat=='ChiSq') %>% .$SD
+)
+```
+
+Across these metrics, the ML method fits the data better based on these t-approximations
+
+# Assess the reliability of the factors themselves
+```{r}
+factor_reliabilities_t = purrr::map(boot_results, ~{
+  pluck(.x$BFA, "Correspondence", .default = NA_real_) %>%
+    {.$Mean / .$SD}
+  # %>%
+  #   map(function(a) {a$Mean / a$SD}) %>%
+  #   reduce(rbind) %>% 
+  #   as.data.frame %>%
+  #   mutate(model = .y)
+})
+factor_reliabilities_t %>% lapply(mean)
+```
+
+
+# Assess the reliability of the eigenvalues
+```{r}
+eigenvalue_reliabilities_t = purrr::map(boot_results, ~{
+  pluck(.x$BFA, "Eigenvalues", .default = NA_real_) %>%
+    {.$Mean / .$SD}
+  # %>%
+  #   map(function(a) {a$Mean / a$SD}) %>%
+  #   reduce(rbind) %>% 
+  #   as.data.frame %>%
+  #   mutate(model = .y)
+})
+eigenvalue_reliabilities_t %>% lapply(mean)
+```
+
+
+
+**Conclusion**
+
+-The 10 factor maximum likelihood solution is the most reliable.
+```{r}
+final.EFA <- fa_list$fa.ml.10
+```
+
+# Interpretation of final loadings
+```{r}
+ml10.Varimax.loadings_df = final.EFA$rotated_loadings %>%
+  as.data.frame %>%
+  rownames_to_column('Variable') %>%
+  pivot_longer(-Variable, names_to = 'Factor', values_to = 'Loading') %>%
+  arrange(Factor, desc(abs(Loading)))
+write.csv.box(ml10.Varimax.loadings_df, 
+              "results/ml10.Varimax-LoadingsTable.csv", row.names = F)
+system('rm ~/loadings_MaxLikelihood10Factors.csv')               
+```
+
+
+-View the loadings and interpret the factor
+<!-- - Write out plots of the loadings to aid in interpretation -->
+```{r}
+#view(ml10.Varimax.loadings_df)
+factor_descriptions = c(
+  'ML1'='Free.Time',
+  'ML2'='Distanced.Socializing',
+  'ML3'='Self.Medication',
+  'ML4'='Better.Quality.Sleep(REVERSED)',
+  'ML5'='Wellbeing',
+  'ML6'='Worse.Sleep',
+  'ML7'='PetsAndFamily',
+  'ML8'='Health',
+  'ML9'='Distanced.Coping',
+  'ML10'='Anxiety.And.Self.Soothing')
+```
+
+-Add descriptions to laodings Df
+```{r}
+ml10.Varimax.loadings_df = ml10.Varimax.loadings_df %>% 
+  mutate(
+    Factor = sub('^Varimax.', '', Factor),
+    FactorName = factor_descriptions[Factor],
+  )
+saveRDS.box(ml10.Varimax.loadings_df, 'results/ml10VarimaxLoadingsTable.rds')
+```
+
+# Extract the factor scores
+```{r}
+final.EFA$SCORES <- factor.scores(x=beha[-1], f=final.EFA$rotated_loadings$Varimax)
+```
+
+
+# Read in the covariates
+```{r}
+caspe = readRDS.box('data/EF_CAPE_FINAL.rds')
+dem = readRDS.box('data/demo*rds')
+dem_and_caspe = merge(dem, caspe)
+dem_and_caspe_and_factorScores = merge(
+  dem_and_caspe, 
+  cbind(beha[1], final.EFA$SCORES$scores)) %>%
+  rename_at(vars(starts_with('ML')), ~factor_descriptions[.])
+```
+
+
+# Fit models
+```{r}
+covariates = dem_and_caspe_and_factorScores %>%
+  select(ID, 
+    all_of(c("Sex", "ParentMeanEdu" , "SESFormIncome", 'age_COVID',
+             "ChildRaceOrEthnicity", "CASPE_experience", "CASPE_emotional",
+             "CASPE_cognitive", "CASPE_social", 'ADHD', 'MHB')),
+    starts_with(c('MASC', 'SRS', 'EPII'))
+  ) %>%
+  # We need to preprocess the race variable.
+  # We are underpowered to use the race variable as a predictor, because group
+  # sizes are too small. We will only, therefore, code white as a reference group.
+  mutate(
+    across(starts_with('ChildRace'), ~as.numeric(!. == "White (Not of Hispanic Origin)" ))
+  )
+factors =  dem_and_caspe_and_factorScores %>%
+  select(ID, all_of(factor_descriptions%>%as.vector))
+# Fit the models
+models = purrr::map(covariates %>% select(-ID), function(x) {
+  as.data.frame(purrr::map(factors %>% select(-ID), function(y) {
+    summar = summary(lm(y ~ x))
+    c(summar$coef[2, c('Estimate', 'Pr(>|t|)')], 'R2' = summar$r.sq)
+  }))
+}) %>%
+  imap_dfr(~{rownames_to_column(.x, 'Stat') %>% mutate(Predictor = .y)}) %>%
+  select(Predictor, Stat, everything()) %>%
+  pivot_longer(-Predictor:-Stat, names_to = 'Factor(Response)', values_to = 'value') %>%
+  pivot_wider(id_cols = c(Predictor, `Factor(Response)`), 
+              names_from = Stat, values_from = value) %>%
+  # Now, add a column to indicate the type of variable (demographic, CASPE, etc)
+  mutate(Predictor.Type = case_when(
+    Predictor %in% c('age_COVID', names(dem)) ~ 'Demographic',
+    grepl('CASPE|EPII', Predictor) ~ 'CAPE',
+    grepl('ADHD|MHB|MASC|SRS', Predictor) ~ 'Social/Behavioral/MentalHealth'
+  )) %>%
+  select(Predictor.Type, Predictor, `Factor(Response)`, everything()) %>%
+  group_by(`Factor(Response)`) %>% 
+  mutate(Significant = `Pr(>|t|)` < .05) %>%
+  arrange(desc(R2), .by_group = T)
+
+view(models %>% filter(Significant) %>% 
+  arrange(desc(R2)))
+```
+
+
+Save results
+```{r}
+saveRDS.box(models, "results/all.factorScoreRegressions.rds")
+saveRDS.box(models %>% filter(Significant), 'results/significant.factorScoreRegressions.rds')
+write.csv.box(models %>% filter(Significant), 'results/significant.factorScoreRegressions.csv',
+              row.names=F)
+```
+
+
+
+# Fit a version where each model is controlled for by age and gender
+```{r}
+.age = dem_and_caspe_and_factorScores$age_COVID
+.sex = dem_and_caspe_and_factorScores$Sex
+models_AgeSex_ctrl = purrr::map(covariates %>% select(-ID, -Sex), function(x) {
+  as.data.frame(purrr::map(factors %>% select(-ID), function(y) {
+    summar = summary(lm(y ~ .age + .sex + x))
+    c(summar$coef[2, c('Estimate', 'Pr(>|t|)')], 'R2' = summar$r.sq)
+  }))
+}) %>%
+  imap_dfr(~{rownames_to_column(.x, 'Stat') %>% mutate(Predictor = .y)}) %>%
+  select(Predictor, Stat, everything()) %>%
+  pivot_longer(-Predictor:-Stat, names_to = 'Factor(Response)', values_to = 'value') %>%
+  pivot_wider(id_cols = c(Predictor, `Factor(Response)`), 
+              names_from = Stat, values_from = value) %>%
+  # Now, add a column to indicate the type of variable (demographic, CASPE, etc)
+  mutate(Predictor.Type = case_when(
+    Predictor %in% names(demo) ~ 'Demographic',
+    grepl('CASPE|EPII', Predictor) ~ 'CAPE',
+    grepl('ADHD|MHB|MASC|SRS', Predictor) ~ 'Social/Behavioral/MentalHealth'
+  )) %>%
+  select(Predictor.Type, Predictor, `Factor(Response)`, everything()) %>%
+  mutate(Significant = `Pr(>|t|)` < .05) %>%
+  arrange(desc(R2))
+
+saveRDS.box(models_AgeSex_ctrl, 'results/all.Age+Sex-Controlled_factorScoreRegressions.rds')
+write.csv.box(models_AgeSex_ctrl, 'results/all.Age+Sex-Controlled_factorScoreRegressions.csv',
+              row.names=F)
+```
+
+
+# Standardized version of both
+```{r}
+std.models = purrr::map(covariates %>% select(-ID), function(x) {
+  as.data.frame(purrr::map(factors %>% select(-ID), function(y) {
+    summar = summary(lm(scale(y) ~ scale(x)))
+    c(summar$coef[2, c('Estimate', 'Pr(>|t|)')], 'R2' = summar$r.sq)
+  }))
+}) %>%
+  imap_dfr(~{rownames_to_column(.x, 'Stat') %>% mutate(Predictor = .y)}) %>%
+  select(Predictor, Stat, everything()) %>%
+  pivot_longer(-Predictor:-Stat, names_to = 'Factor(Response)', values_to = 'value') %>%
+  pivot_wider(id_cols = c(Predictor, `Factor(Response)`), 
+              names_from = Stat, values_from = value) %>%
+  group_by(`Factor(Response)`) %>% 
+  mutate(Significant = `Pr(>|t|)` < .05) %>%
+  arrange(desc(R2), .by_group = T)
 ```
 

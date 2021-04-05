@@ -79,11 +79,11 @@ loadings.continuous
 # asking them to retroactively report which emotions they felt *more* than before.
 ("Concurrent" emotion-sampling only)
 ```{r}
-caspe.emoConcurrent.ega.continuous = EGAnet::EGA(
-  data = CaspeEmotional %>% select(-ID, -starts_with('More')) %>% mutate_all(as.numeric),
+caspe.emoConcurrent.ega = EGAnet::EGA(
+  data = CaspeEmotional %>% select(-ID, -starts_with('More')),
   model = 'glasso', algorithm = 'louvain', plot.EGA = F
 )
-plot(caspe.emoConcurrent.ega.continuous)
+plot(caspe.emoConcurrent.ega)
 concurrent.loadings = net.loads(caspe.emoConcurrent.ega.continuous)$std
 concurrent.ldngs.df = concurrent.loadings %>%
        rownames_to_column('Variable') %>%

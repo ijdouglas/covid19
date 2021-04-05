@@ -54,3 +54,10 @@ imap(beha.load.std, ~{
 })
 ```
 
+
+# Extract the scores
+```{r}
+beha.ega.scores = net.scores(beha[-1], beha.ega, impute = 'none')
+beha.ega.scores$std.scores
+```
+

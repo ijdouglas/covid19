@@ -1,0 +1,60 @@
+---
+title: "Time Two Replication"
+author: "Ian Douglas"
+date: "3/29/2021"
+output: html_document
+---
+```{r, message=F, warning=F}
+library(tidyverse)
+library(readxl)
+box_path = '~/Box/Research/covid19'
+```
+
+
+```{r}
+t2 = read.csv(Sys.glob(file.path(box_path, 'data/raw_exports/*csv')),
+              stringsAsFactors = F)
+t2$covid_child_survey_2_timestamp
+```
+
+
+```{r}
+t2 %>%
+  mutate(.dates = as.Date(trimws(
+    substr(1, 8, x = covid_child_survey_2_timestamp)), format='%m/%d/%y')) #%>%
+  #filter(.dates > "2020-07-23") %>% # 5/20/2020 to 7/22/2020
+  # select(-.dates)
+t2.complete = t2 %>%
+  mutate(.dates = as.Date(trimws(substr(1, 8, 
+                                        x = covid_child_survey_2_timestamp)), 
+                          format='%m/%d/%y')) %>%
+  # This seems to be a good way to filter stuff:
+  filter(!is.na(covid_child_eng_books_v2)) %>%
+  mutate_at('participant_id', ~substr(., 1, 8))
+  
+```
+
+
+
+# Basic demography
+```{r}
+t2.returns = inner_join(
+  t2.complete %>% select(ID=participant_id, covid_child_eng_age_v2),
+  readRDS(file.path(box_path, 'data/demographics.rds')))
+
+
+sum(t2.returns$Sex == "F") / nrow(t2.returns)
+summary(t2.returns$covid_child_eng_age_v2)
+
+```
+
+
+diagnosis
+```{r}
+t2.return.caspe1 = inner_join(
+  t2.complete %>% select(ID=participant_id, covid_child_eng_age_v2),
+  readRDS(file.path(box_path, 'data/EF_CAPE_FINAL.rds')))
+
+sum(t2.return.caspe1$child_PRECOVID_visit_diagnoses=="N") / nrow(t2.return.caspe1)
+```
+
