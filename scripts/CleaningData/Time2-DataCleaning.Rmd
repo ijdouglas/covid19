@@ -4,57 +4,212 @@ author: "Ian Douglas"
 date: "3/29/2021"
 output: html_document
 ---
+# Process the raw data exported from Redcap
+
+The first step is actually to run the script that automatically downloads along \
+with the data export. The script just converts factor and numeric variables to their \
+respective data types. The names are still left in raw format (eg, 'covid_child_eng_1_v2'). \
+There are a couple exceptions (subject ID is named 'participant_id').
+
+The script needed the following edits to take it from it's original, downloaded form \
+to the version that is run (sourced) below.
+
+1. The path to the raw exported data is hardcoded, so that it points to where that data is:
+
+`covid19/data/raw_exports/`
+
+2. A hardcoded output file is set, so that the result writes out a csv to:
+
+`covid19/raw_exports/coded_{Sys.Date()}.csv`
+```{r}
+list.files('../../data/raw_exports')
+if (!any(grepl('coded_.+csv', list.files("../../data/raw_exports")))) {
+  source('EFStudySurveyFormsDa_R_2021-03-29_1556.r')
+}
+list.files('../../data/raw_exports')
+```
+```{r}
+sys_date = '2021-04-05'
+```
+
+
+# Setup
+
+Now that that's done, we can set up some environment variables and load packages \ 
+while we're at it
 ```{r, message=F, warning=F}
 library(tidyverse)
 library(readxl)
+library(stringr)
+library(zoo)
 box_path = '~/Box/Research/covid19'
+read.csv.box = function(.path)
+{
+  read.csv(Sys.glob(file.path(box_path, .path)), stringsAsFactors = F)
+}
+readRDS.box = function(.path)
+{
+  readRDS(Sys.glob(file.path(box_path, .path)))
+}
+# This will remove HTML tags from variable names
+# found at (https://stackoverflow.com/questions/17227294/removing-html-tags-from-a-string-in-r)
+remove_HTML <- function(string) {
+  return(gsub("<.*?>", "", string))
+}
 ```
 
+# Read in the coded data file
+```{r}
+# Assuming the above chunk was sourced on Sys.Date()
+coded = read.csv.box(paste0('data/raw*/coded_', sys_date, '.csv'))
+# Knowing how read.csv and write.csv work, if the first column is called "X",
+# it is probably unwanted row indices converted to a meaningless column, so delete it.
+if (names(coded)[1] == "X") coded <- coded[-1]
+head(coded)
+```
+
+
+# Now read in the data dictionary
+
+Using the data dictionary, replace the generic variable names (e.g., covid_child_eng_1_v2) \
+with variable names that indicate what the variable is.
+```{r}
+EF.dict = read.csv('../../docs/EFStudySurveyFormsData_DataDictionary_2021-04-06.csv',
+                   stringsAsFactors = F)
+
+
+# Filter this so that it contains only the covid child survey variables from time two
+covidT2.dict = EF.dict %>%
+  filter(grepl('^covid_child_', Variable...Field.Name)) %>%
+  filter(grepl('_v2', Variable...Field.Name)) %>%
+  # copy Variable...Field.Name (rather than rename so we can use it to merge)
+  mutate(Variable.Name = Variable...Field.Name)
+
+# One issue is that in our data we have the following variable:
+# `covid_child_eng_4_v2___1`, `covid_child_eng_4_v2___2` ... `covid_child_eng_4_v2___n`, 
+# where covid_child_eng_4_v2___n is the n-th checkbox option for question stem 4.
+# In the dictionary, we have covid_child_eng_4_v2 in "Variable.NAme", and another 
+# column, called "Choices..Calculations..OR.Slider.Labels" with the n options as:
+# `1, Anxiety | 2, Worried | ... | n, Z` for the n options Anxiety ... Z.
+# The Field.Type column will be called "checkbox" for each of these.
+# Define a function to create rows corresponding
+```
 
 ```{r}
-t2 = read.csv(Sys.glob(file.path(box_path, 'data/raw_exports/*csv')),
-              stringsAsFactors = F)
-t2$covid_child_survey_2_timestamp
+dict = read.csv("../../docs/ChildCOVID-Time2_DataDictionary.csv",
+                stringsAsFactors = F)
+view(dict)
+
+# The variable names need some data cleaning to remove javascript from Qualtrics
+dict$Variable.Name = dict$Field.Label %>% remove_HTML
+view(dict %>% select(Field.Label, Variable.Name))
+
+# Now make a variable for the categories (Emotional, Experience, Cognitive, Social)
+dict$Section = dict$Section.Header %>%
+  str_extract('^[[:alpha:]]\\. .+') %>% sub('[0-9]+\ [[:alnum:]]+.+$', '', .) %>%
+  zoo::na.locf(., na.rm=F)
+view(dict %>% select(Section, Section.Header))
+View(dict %>% 
+       mutate_at(vars(Matrix.Group.Name, Variable...Field.Name), ~replace(., .=="", NA)) %>%
+       mutate(Coded.Name = coalesce(Matrix.Group.Name, Variable...Field.Name)) %>%
+       select(Section.Header, Section, Field.Label, Variable.Name, 
+              Coded.Name, Matrix.Group.Name, Variable...Field.Name))
 ```
 
 
+The variables in coded from the survey originally are from the first variable, \
+until the variable called "covid_child_survey_2_complete".
 ```{r}
-t2 %>%
-  mutate(.dates = as.Date(trimws(
-    substr(1, 8, x = covid_child_survey_2_timestamp)), format='%m/%d/%y')) #%>%
-  #filter(.dates > "2020-07-23") %>% # 5/20/2020 to 7/22/2020
-  # select(-.dates)
-t2.complete = t2 %>%
-  mutate(.dates = as.Date(trimws(substr(1, 8, 
-                                        x = covid_child_survey_2_timestamp)), 
-                          format='%m/%d/%y')) %>%
-  # This seems to be a good way to filter stuff:
-  filter(!is.na(covid_child_eng_books_v2)) %>%
-  mutate_at('participant_id', ~substr(., 1, 8))
-  
+d = coded %>% select(1:covid_child_survey_2_complete)
+dim(d)
 ```
 
+Begin to code the variables. Note, there are 202 variables because the chek all that apply \
+and variables with common stems but are coded individually (such as the emotion variables) \
+have been converted into 'one-hot' coding already by redcap. So the dictionary has 98 variables, \
+as does the "instrument" PDF in the redcap "codebook" page, but the downloaded data \
+has 202 variables.
 
 
-# Basic demography
+# Data Cleaning.
+Checkout the contents of any variables with 'consent' in the title.
 ```{r}
-t2.returns = inner_join(
-  t2.complete %>% select(ID=participant_id, covid_child_eng_age_v2),
-  readRDS(file.path(box_path, 'data/demographics.rds')))
-
-
-sum(t2.returns$Sex == "F") / nrow(t2.returns)
-summary(t2.returns$covid_child_eng_age_v2)
-
+d %>% select(contains('consent')) %>% 
+  purrr::map(table, useNA = 'ifany')
 ```
 
-
-diagnosis
+Conclusion: there is 1 consent variable that is set to 1 if the subjects consented \
+and NA otherwise. Drop all NA with respect to that column first so that we are \
+sure that we are only analyzing data for participants who have consented.
 ```{r}
-t2.return.caspe1 = inner_join(
-  t2.complete %>% select(ID=participant_id, covid_child_eng_age_v2),
-  readRDS(file.path(box_path, 'data/EF_CAPE_FINAL.rds')))
-
-sum(t2.return.caspe1$child_PRECOVID_visit_diagnoses=="N") / nrow(t2.return.caspe1)
+d2 = d %>% 
+  filter(covid_child_eng_consent_v2 == 1) %>%
+  # After doing so, we can drop the consent variable (they are all just "1")
+  select(-covid_child_eng_consent_v2)
+dim(d2)
 ```
+
+# See if any variables all are the same value for all subjects
+```{r}
+d2 %>% summarise(across(everything(), ~n_distinct(na.omit(.)))) %>% 
+  select(where(~. < 2)) %>%
+  imap(~{table(d2[,.y],useNA='ifany')})
+```
+
+Conclusion: redcap_event_name and redcap_survey_identifier can be deleted
+```{r}
+d3 = d2 %>%
+  select(-redcap_event_name, -redcap_survey_identifier)
+```
+
+
+# Naming the variables
+Start by naming the variables that are not shown to the participant \
+(such as the timestamp that redcap creates). \
+These variables do not have a corresponding entry in the ditionary.
+```{r}
+# Note, these are in order of the variables
+d3 %>% rename(
+  # rename() works as follows:
+  # new_name = old_name
+  ID = participant_id,
+  timestamp = covid_child_survey_2_timestamp,
+  age = covid_child_eng_age_v2,
+  survey_date = covid_child_eng_date_v2,
+  subject_name = covid_child_eng_init_v2,
+  zip_code = covid_child_zip_v2,
+  school_grade = covid_child_eng_grade_v2,
+  school_name = covid_child_eng_school_v2,
+  school_format = covid_child_eng_school2_v2,
+  # The next variables pertain to the 'Experience' subscale
+  exp.negative.effect = covid_child_eng_1_v2,
+  exp.most.neg.WorryAboutSomeoneHasHadVirus = covid_child_eng_2_v2___1,
+  exp.most.neg.StayAtHome = covid_child_eng_2_v2___2,
+  exp.most.neg.NotSeeingFriendsInPerson = covid_child_eng_2_v2___3,
+  exp.most.neg.ThinkHowManyPeopleDying = covid_child_eng_2_v2___4,
+  exp.most.neg.NotGoingToSchool = covid_child_eng_2_v2___5,
+  exp.most.neg.MoreFamilyTime = covid_child_eng_2_v2___6,
+  exp.most.neg.NoScheduleStressDisorient = covid_child_eng_2_v2___7,
+  exp.most.neg.NoAccessToResources = covid_child_eng_2_v2___8,
+  exp.most.neg.NotGoingToSchool = covid_child_eng_2_v2___9,
+  # The next questions are still experience subscale
+  # There is one ordinal question, and then another set of checkbox
+  exp.positive.effect = covid_child_eng_3_v2,
+  exp.most.positive.LessSchoolwork = covid_child_eng_4_v2___1,
+  exp.most.positive.LessSchoolStress = covid_child_eng_4_v2___2,
+  exp.most.positive.MoreTimeRelax = covid_child_eng_4_v2___3,
+  exp.most.positive.DoThingsUsuallyDontHaveTimeFor_art.music.writing.cooking = covid_child_eng_4_v2___4,
+  exp.most.positive.MoreFreePhoneComputerTime_texting.socialmedia = covid_child_eng_4_v2___5,
+  exp.most.positive.WatchMoreTV = covid_child_eng_4_v2___6,
+  exp.most.positive.MoreTimeExerciseOrGoOutside = covid_child_eng_4_v2___7,
+  exp.most.positive.GetMoreSleep = covid_child_eng_4_v2___8,
+  exp.most.positive.MoreFamilyTime = covid_child_eng_4_v2___9,
+  exp.most.positive.MoreTimeWithPets = covid_child_eng_4_v2___10,
+  exp.most.positive.AvoidingUnwantedSocialInteraction = covid_child_eng_4_v2___11,
+  exp.most.positive.MoreControlCreateSchedule = covid_child_eng_4_v2___12,
+)
+```
+
+
+
 
