@@ -1,0 +1,105 @@
+---
+title: "Exploratory Data Analysis"
+author: "Ian Douglas"
+date: "4/15/2021"
+output: html_document
+---
+
+## Setup
+```{r}
+library(tidyverse)
+box_path = '~/Box/Research/covid19'
+read.csv.box = function(.path)
+{
+  read.csv(Sys.glob(file.path(box_path, .path)), stringsAsFactors = F)
+}
+readRDS.box = function(.path)
+{
+  readRDS(Sys.glob(file.path(box_path, .path)))
+}
+# Read in the data
+dat = readRDS.box("data/T*/Raw*rds")
+```
+
+
+# Correlation of positive and negative effect
+```{r}
+dat %>%
+  ggplot() +
+  geom_jitter(aes(exp.NegativeEffect, exp.PositiveEffect)) +
+  ggtitle(paste0('Correlation p-value: ', 
+                 round(with(dat, cor.test(exp.NegativeEffect, exp.PositiveEffect)$p.val), 3)))
+```
+No correlation.
+
+
+# Have any participants had covid?
+```{r}
+dat %>% 
+  filter(exp.EverTested <= 2) %>%
+  select(exp.EverPositiveTest) %>% table(., useNA = 'ifany')
+```
+Seven participants have had COVID.
+
+# Have any participants' friends or family died of COVID?
+```{r}
+dat %>% filter(exp.AnyoneInHouseDied == 1) %>%
+  select(contains('.died.'))
+```
+6 participants know a family member who died from COVID
+
+
+# Most commonly chosen negative and positive experiences
+```{r}
+dat %>%
+  select(ID, contains(c('exp.most.neg.', 'exp.most.positive.'))) %>%
+  pivot_longer(-ID, names_to = 'Variable', values_to='Value') %>%
+  mutate(subscale = str_extract(Variable, 'neg|positive'),
+         subscale = case_when(subscale=='neg' ~ 'MostNegative', TRUE ~ 'MostPositive')) %>%
+  group_by(Variable, subscale) %>%
+  summarise(across(Value, mean)) %>%
+  rename(PercentEndorsed = Value) %>%
+  group_by(subscale) %>%
+  arrange(desc(PercentEndorsed), .by_groups = T) %>%
+  mutate(Variable = sub('exp.most.[[:alpha:]]+.', '', Variable),
+         Variable = factor(Variable, levels=rev(unique(Variable)))) %>%
+  ggplot() + 
+  geom_col(aes(x = Variable, y = PercentEndorsed, fill = subscale)) +
+  coord_flip()
+```
+
+
+# Most commonly endorsed emotions
+```{r}
+dat %>%
+  select(ID, matches(c('emo.past.7.days.[[:alpha:]]+$'))) %>%
+  pivot_longer(-ID, names_to = 'Variable', values_to='Value') %>%
+  group_by(Variable) %>%
+  mutate(Value = scale(Value)) %>%
+  group_by(Variable) %>%
+  mutate(means = mean(Value),
+         Variable = factor(Variable, levels = rev(unique(Variable)))) %>%
+  summarise(Value_Mean = mean(Value, na.rm = T),
+            Value_SE = mean(Value, na.rm = T)/length(na.omit(Value))) %>%
+  arrange(desc(Value_Mean)) %>%
+  mutate(Variable = sub('emo.past.7.days\\.', '', Variable),
+         Variable = factor(Variable, levels=rev(unique(Variable)))) %>%
+  ggplot() + 
+  geom_point(aes(x = Variable, y = Value_Mean)) +
+  geom_linerange(aes(x = Variable, ymin = Value_Mean-(1.96*Value_SE), 
+                     ymax = Value_Mean+(1.96*Value_SE))) +
+  coord_flip()
+```
+
+
+# EFA of behaviors
+```{r}
+library(psych)
+beh1 = dat %>% select(contains('cope.behavior')) %>% select(-contains('Other'))
+names(beh1)
+beh.cor1 = cor(beh1)
+beh.para1 = fa.parallel(beh.cor1, nrow(beh1))
+efa1 = fa(r = beh.cor1, n.obs = nrow(beh1), nfactors = beh.para1$nfact, rotate = 'none', fm='ml')
+View(GPArotation::Varimax(loadings(efa1))$loadings %>% unclass %>% as.matrix)
+```
+
