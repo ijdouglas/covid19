@@ -1,0 +1,114 @@
+---
+title: "Merging time 1 and 2 COVID surveys"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(magrittr)
+box_path = "~/Box/Research/covid19" # set this to the full path to covid19 on box
+read.csv.box = function(.path)
+{
+  read.csv(Sys.glob(file.path(box_path, .path)), stringsAsFactors = F)
+}
+readRDS.box = function(.path)
+{
+  readRDS(Sys.glob(file.path(box_path, .path)))
+}
+```
+
+
+# Read in the time 1 and time 2 data
+```{r}
+t1 = readRDS.box("data//Timepoint1/*Factorcoded.rds")
+t2 = readRDS.box("data//Timepoint2/*Factorcoded.rds")
+```
+
+
+# Merge
+
+1. We are simply going to start by use rbind() to create long data
+2. For factors with the same names but different levels, we will just set the \
+levels to be the union of the levels of both timepoints.
+
+-First see how many names overlap
+```{r}
+length(intersect(names(t1), names(t2)))
+```
+
+There are 179 variables in common between the two datasets
+```{r}
+setdiff(names(t1), names(t2))
+setdiff(names(t2), names(t1))
+```
+
+
+`sex`, `num_siblings`, & `school_closure_date` were only collected at time 1, but they are applicable \
+to both timepoints, so we'll set them aside and merge them in later.
+
+The 16 variables (8 at each time point) that start either with `soc.since.closure` or `soc.since.september` \
+are in fact the same question, but are relative to events that were ~3 to 6 months prior (either start of covid, \
+or start of what would have been the next school year at time). So these will be renamed, and the "since.closure." \
+and "since.september" will be dropped from the variable names so they can be merged.
+
+All other variables that don't have a match at the other timepoint, will be prepended "time{1,2}.".
+```{r}
+demographics = t1[c('ID', 'sex', 'num_siblings', 'school_closure_date')]
+t1_only = names(t1)[!names(t1) %in% names(t2)] %>%
+  {.[!. %in% names(demographics[-1])]} %>%
+  Filter(x=., f=function(x) !grepl('since.closure', x))
+t2_only = names(t2)[!names(t2) %in% names(t1)] %>%
+  {.[!. %in% names(demographics[-1])]} %>%
+  Filter(x=., f=function(x) !grepl('since.september', x))
+# Rename these columns, and the ones mentioned in the comment above this chunk.
+t1 %<>% rename_at(vars(all_of(t1_only)), ~paste('time1.', ., sep="")) %>%
+  rename_at(vars(contains('since.closure.')), ~sub('since.closure.', '', .)) %>%
+  # Additionally, drop the demographic columns that will be added back later
+  select(-all_of(names(demographics[-1])))
+t2 %<>% rename_at(vars(all_of(t2_only)), ~paste('time2.', ., sep="")) %>%
+  rename_at(vars(contains('since.september.')), ~sub('since.september.', '', .))
+```
+
+-Check that renaming worked:
+```{r}
+setdiff(names(t1), names(t2))
+setdiff(names(t2), names(t1))
+```
+
+# Final pre-merging step, create a new column in each data frame for the time points
+```{r}
+t1 %<>% mutate(timepoint = 1)
+t2 %<>% mutate(timepoint = 2)
+```
+
+# Merging
+
+1. Start by merging the columns shared by both
+```{r}
+shared_cols = intersect(names(t1), names(t2))
+merge_intersection = rbind(t1[shared_cols], t2[shared_cols])
+```
+
+2. Bring in the unique columns
+```{r}
+t1_unique = t1 %>% select(-all_of(names(merge_intersection %>% select(-ID, -timepoint))))
+t2_unique = t2 %>% select(-all_of(names(merge_intersection %>% select(-ID, -timepoint))))
+
+merged_with_uniques = list(merge_intersection, t1_unique, t2_unique) %>%
+  reduce(left_join, by = c('ID', 'timepoint'))
+```
+
+3. Add back the demographics, reorder columns
+```{r}
+all_merged = left_join(merged_with_uniques, demographics, by = 'ID') %>%
+  select(-matches('^time[0-9]'), everything()) %>%
+  select(ID, timepoint, timestamp, sex, age, num_siblings, 
+         starts_with('school'), EnterEmailForAmazonGiftCardRaffle,
+         everything())
+```
+
+
+# Save the result
+```{r}
+system('mkdir ~/Box/Research/covid19/data/Clean/')
+saveRDS(all_merged, "~/Box/Research/covid19/data/Clean/time1+time2_LongData.rds")
+```

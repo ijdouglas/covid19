@@ -1,0 +1,740 @@
+---
+title: "Time One Data Cleaning and Recoding"
+output: html_document
+# Process the raw data exported from Redcap
+---
+
+The first step is actually to run the script that automatically downloads along \
+with the data export. The script just converts factor and numeric variables to their \
+respective data types. The names are still left in raw format (eg, 'covid_child_eng_1'). \
+There are a couple exceptions (subject ID is named 'participant_id').
+
+**Note**. The file we're starting from (on which we run the abovementioned script) \
+is downloaded directly from redcap. To do so, we selected ONLY the COVID Chlid Survey! 
+If that is not the case, and the file is the download of all EF variables, for example, \
+then you would also need to select the desired columns pertaining to COVID timepoint 1, 
+in addition to running the coding script that comes with the download of whatever 
+variables were downloaded.
+
+The script needed the following edits to take it from it's original, downloaded form \
+to the version that is run (sourced) below.
+
+1. The path to the raw exported data is hardcoded, so that it points to where that data is:
+
+`covid19/data/raw_exports/`
+
+2. A hardcoded output file is set, so that the result writes out a csv to:
+
+`covid19/raw_exports/timepoint1_coded_{Sys.Date()}.csv`
+```{r}
+list.files('../../data/raw_exports')
+if (!any(grepl('timepoint1_coded_.+csv', list.files("../../data/raw_exports")))) {
+  # NOTE, YOU NEED TO MAKE SURE THAT IN THE SCRIPT BELOW
+  # IT IS HARDCODED TO POINT TO THE CORRESPONDING DATA
+  source("EFStudySurveyFormsDa_R_2021-04-17_1236.r")
+}
+list.files('~/Box/Research/covid19/data/raw_exports/')
+```
+
+
+```{r}
+# Programmatically take the most recent coded*csv file
+# Do so by extracting the date portion of the filename, and figuring out which is more recent
+fls = list.files('../../data/raw_exports')
+coded_file_dates = fls[grepl('^timepoint1_coded_.+csv$', fls)] %>%
+  str_extract('[[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2}')
+coded_file_dates = coded_file_dates[which.max(as.Date(coded_file_dates))]
+sys_date = coded_file_dates
+sys_date
+```
+
+
+# Setup
+
+Now that that's done, we can set up some environment variables and load packages \ 
+while we're at it
+```{r, message=F, warning=F}
+library(tidyverse)
+library(magrittr) # for %<>%
+library(readxl)
+library(stringr)
+library(zoo)
+box_path = '~/Box/Research/covid19'
+read.csv.box = function(.path)
+{
+  read.csv(Sys.glob(file.path(box_path, .path)), stringsAsFactors = F)
+}
+readRDS.box = function(.path)
+{
+  readRDS(Sys.glob(file.path(box_path, .path)))
+}
+# This will remove HTML tags from variable names
+# found at (https://stackoverflow.com/questions/17227294/removing-html-tags-from-a-string-in-r)
+remove_HTML <- function(string) {
+  return(gsub("<.*?>", "", string))
+}
+```
+
+# Read in the coded data file
+```{r}
+# Plug in the sys_date and read in the most recently coded file:
+coded = read.csv.box(paste0('data/raw*/timepoint1_coded_', sys_date, '.csv'))
+# Knowing how read.csv and write.csv work, if the first column is called "X",
+# it is probably unwanted row indices converted to a meaningless column, so delete it.
+if (names(coded)[1] == "X") coded <- coded[-1]
+head(coded)
+```
+
+
+# First do a couple of data cleaning and filtering 
+
+1. Get the complete data
+2. Get the correct dates
+The variables in coded from the survey originally are from the first variable, \
+until the variable called "covid_child_survey_2_complete".
+```{r}
+d = coded %>% select(participant_id:covid_child_survey_complete)
+dim(d)
+```
+
+Begin to code the variables. Note, there are 202 variables because the chek all that apply \
+and variables with common stems but are coded individually (such as the emotion variables) \
+have been converted into 'one-hot' coding already by redcap. So the dictionary has 98 variables, \
+as does the "instrument" PDF in the redcap "codebook" page, but the downloaded data \
+has 202 variables.
+
+
+# Data Cleaning.
+Checkout the contents of any variables with 'consent' in the title.
+```{r}
+d %>% select(contains('consent')) %>% 
+  purrr::map(table, useNA = 'ifany')
+```
+
+Conclusion: there is 1 consent variable that is set to 1 if the subjects consented \
+and NA otherwise. Drop all NA with respect to that column first so that we are \
+sure that we are only analyzing data for participants who have consented.
+```{r}
+d2 = d %>% 
+  filter(covid_child_eng_consent == 1) %>%
+  # After doing so, we can drop the consent variable (they are all just "1")
+  select(-covid_child_eng_consent)
+dim(d2)
+```
+
+# See if any variables all are the same value for all subjects
+
+**Note**. This outputs a long list, one table for each variable, which tells us \
+how many NA in each variable.
+```{r}
+d2 %>% summarise(across(everything(), ~n_distinct(na.omit(.)))) %>% 
+  select(where(~. < 2)) %>%
+  imap(~{table(d2[,.y],useNA='ifany')})
+```
+
+- Conclusions: In this sample (after filtering for those who consented), we have all \
+complete data (as indicated by `covid_child_survey_complete`), and `covid19_arm_1` \
+and `redcap_survey_identifier` are all the same for each row, and can therefore be deleted.
+```{r}
+d3 = d2 %>%
+  select(-redcap_event_name, -redcap_survey_identifier, -covid_child_survey_complete)
+```
+
+# Naming the variables
+## Now go to redcap (www.redcap.prc.utexas.edu)
+
+1. Open the page for the EF_Study: `My Proects` > `Codebook`
+2. Using the `Expand` and `Collapse` toggles on the top right corner of each \
+survey, expand the "COVID Child Survey"
+3. Now pair up the old names and new names to rename the variables (one-by-one)
+
+-Notes about using `transmute`. \
+
+Any doing the following `new_variable = old_variable`, will create a new variable that is an \
+exact replicate of old_variable, but has the name new_variable. As per how transmute works, \
+old_variable is not renamed, but if it is not explicitly set to anything later on, it \
+will be dropped, so in effect we are just renaming it.
+
+The point is that if we do `new_variable = sqrt(old_variable)`, and then never set \
+old_variable to anything later on the transmute call, we will in effect rename AND \
+recode it (we recoded it as the square root of itself) in one command.
+```{r}
+d4 = d3 %>% transmute(
+  # rename() works as follows:
+  # new_name = old_name
+  ID = participant_id,
+  timestamp = covid_child_survey_timestamp,
+  age = covid_child_eng_age,
+  sex = factor(
+    case_when(covid_child_eng_sex == 1 ~ 'Female', 
+              covid_child_eng_sex == 2 ~ 'Male',
+              covid_child_eng_sex == 3 ~ 'Non-binary',
+              covid_child_eng_sex == 4 ~ 'Other',
+              covid_child_eng_sex == 5 ~ 'Prefer not to say'),
+    levels = c('Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say')
+  ),
+  survey_date = covid_child_eng_date,
+  subject_name = covid_child_eng_init,
+  zip_code = covid_child_eng_zip,
+  school_grade = covid_child_eng_grade,
+  num_siblings = covid_child_eng_sib,
+  #
+  # 
+  # EXPERIENCE SUBSECTION
+  exp.NegativeEffect = covid_child_eng_1, # (1) Not at all > ... > (5) A great deal
+  exp.most.neg.WorryAboutSomeoneHasHadVirus = covid_child_eng_2___1,
+  exp.most.neg.StayAtHome = covid_child_eng_2___2,
+  exp.most.neg.NotSeeingFriendsInPerson = covid_child_eng_2___3,
+  exp.most.neg.ThinkHowManyPeopleDying = covid_child_eng_2___4,
+  exp.most.neg.NotGoingToSchool = covid_child_eng_2___5,
+  exp.most.neg.MoreFamilyTime = covid_child_eng_2___6,
+  exp.most.neg.NoScheduleStressDisorient = covid_child_eng_2___7,
+  exp.most.neg.NoAccessToResources = covid_child_eng_2___8,
+  # The next questions are still experience subscale
+  # There is one ordinal question, and then another set of checkbox
+  exp.PositiveEffect = covid_child_eng_3, # (1) Not at all > ... > (5) A great deal
+  exp.most.positive.LessSchoolwork = covid_child_eng_4___1,
+  exp.most.positive.LessSchoolStress = covid_child_eng_4___2,
+  exp.most.positive.MoreTimeRelax = covid_child_eng_4___3,
+  exp.most.positive.DoThingsUsuallyDontHaveTimeFor_eg_art_music_writing_cooking = covid_child_eng_4___4,
+  exp.most.positive.MoreFreePhoneComputerTime_eg_texting_socialmedia = covid_child_eng_4___5,
+  exp.most.positive.WatchMoreTV = covid_child_eng_4___6,
+  exp.most.positive.MoreTimeExerciseOrGoOutside = covid_child_eng_4___7,
+  exp.most.positive.GetMoreSleep = covid_child_eng_4___8,
+  exp.most.positive.MoreFamilyTime = covid_child_eng_4___9,
+  exp.most.positive.MoreTimeWithPets = covid_child_eng_4___10,
+  exp.most.positive.AvoidingUnwantedSocialInteraction = covid_child_eng_4___11, 
+  exp.most.positive.MoreControlCreateSchedule = covid_child_eng_4___12,
+  # The next set of questions are going to contain 4 stand-alone questions \
+  # and then one check all that apply with 11 options, \
+  # followed by one more stand alone question (covid_child_eng_6b)
+  # This is considered the "experience" subscale
+  exp.EverTested = covid_child_eng_5,
+  exp.EverPositiveTest = covid_child_eng_5a,
+  exp.DateOfTest = covid_child_eng_5b,
+  exp.KnowAnyonePositiveTest = covid_child_eng_6,
+  exp.anyone.positive.test.Mother = covid_child_eng_6a___1,
+  exp.anyone.positive.test.Father = covid_child_eng_6a___2,
+  exp.anyone.positive.test.Sibling = covid_child_eng_6a___3,
+  exp.anyone.positive.test.Grandparent = covid_child_eng_6a___4,
+  exp.anyone.positive.test.AuntUncle = covid_child_eng_6a___5,
+  exp.anyone.positive.test.Cousin = covid_child_eng_6a___6,
+  exp.anyone.positive.test.FriendClassmate = covid_child_eng_6a___7,
+  exp.anyone.positive.test.Neighbor = covid_child_eng_6a___8,
+  exp.anyone.positive.test.Teacher = covid_child_eng_6a___9,
+  exp.anyone.positive.test.FamilyMemberOfFriend = covid_child_eng_6a___10,
+  exp.anyone.positive.test.Other = covid_child_eng_6a___11,
+  exp.anyone.positive.test.OtherText = covid_child_eng_6b,
+  # Experience subscale, a stand-alone, then related check boxes:
+  exp.AnyoneInHouseDied = covid_child_eng_7,
+  exp.anyone.died.in.house.Mother = covid_child_eng_7a___1,
+  exp.anyone.died.in.house.Father = covid_child_eng_7a___2,
+  exp.anyone.died.in.house.Sibling = covid_child_eng_7a___3,
+  exp.anyone.died.in.house.Grandparent = covid_child_eng_7a___4,
+  exp.anyone.died.in.house.AuntUncle = covid_child_eng_7a___5,
+  exp.anyone.died.in.house.Cousin = covid_child_eng_7a___6,
+  exp.anyone.died.in.house.Other = covid_child_eng_7a___7,
+  exp.anyone.died.in.house.OtherText = covid_child_eng_7b,
+  # The last few questions for the experience scale are mostly multiple choice:
+  exp.AnyFriendsOrFriendsFamilyHadCOVID = covid_child_eng_8,
+  exp.WhoFriendsOrFriendsFamilyHadCOVID = covid_child_eng_8a,
+  exp.AnyFriendsOrFriendsFamilyHospitalized = covid_child_eng_8b,
+  exp.WhoFriendsOrFriendsFamilyHospitalized = covid_child_eng_8c,
+  # This part is different between time 1 and time 2, therefore, however, the
+  # question that asks what school the participant goes to is basically the same
+  # as a different question in time 2, and can therefore be assigned the same
+  # variable name (see below)
+  school_name = covid_child_eng_9, # at time 2, this was `covid_child_eng_school_v2`
+  school_closure_date = covid_child_eng_9a,
+  remote.school.format.initial.SchoolSentPackets = covid_child_eng_10___1,
+  remote.school.format.initial.SchoolSentOnlineAssignments_no_virtual_class = covid_child_eng_10___2,
+  remote.school.format.initial.SchoolOrganizedOnlineClass = covid_child_eng_10___3,
+  remote.school.format.initial.StartedAlternativeOnlineAcademicProgram = covid_child_eng_10___4,
+  remote.school.format.initial.SchoolDidNotContinue = covid_child_eng_10___5,
+  remote.school.format.initial.WasAlreadyInCyberSchoolNoChange = covid_child_eng_10___6,
+  remote.school.format.initial.Other = covid_child_eng_10___7,
+  remote.school.format.initial.OtherText = covid_child_eng_10ex,
+  #
+  #
+  # BELOW BEGINS THE EMOTIONAL SUBSECTION
+  # 11 through 14s have the following codes: (1) Very slightly or not at all > ... > (5) Extremely
+  # (see redcap or the data dictionary for full scale codes)
+  emo.past.7.days.HowStressful.Uncertainty = covid_child_eng_11,
+  emo.past.7.days.HowStressful.Disruption = covid_child_eng_12,
+  emo.past.7.days.HowWorried.HouseholdMemberBecomeSick = covid_child_eng_13,
+  # Same codes as 11, 12, and 13, but from 14 to 14s they share a common string and
+  # each questions asks about one single emotion
+  emo.past.7.days.Anxious = covid_child_eng_14a,
+  emo.past.7.days.Angry = covid_child_eng_14b,
+  emo.past.7.days.Content = covid_child_eng_14c,
+  emo.past.7.days.Afraid = covid_child_eng_14d,
+  emo.past.7.days.Happy = covid_child_eng_14e,
+  emo.past.7.days.Sad = covid_child_eng_14f,
+  emo.past.7.days.Worried = covid_child_eng_14g,
+  emo.past.7.days.Irritable = covid_child_eng_14h,
+  emo.past.7.days.Concerned = covid_child_eng_14i,
+  emo.past.7.days.Stressed = covid_child_eng_14j,
+  emo.past.7.days.Relieved = covid_child_eng_14k,
+  emo.past.7.days.Distressed = covid_child_eng_14l,
+  emo.past.7.days.Lonely = covid_child_eng_14m,
+  emo.past.7.days.Bored = covid_child_eng_14n,
+  emo.past.7.days.Hopeless = covid_child_eng_14o,
+  emo.past.7.days.Frustrated = covid_child_eng_14p,
+  emo.past.7.days.Disappointed = covid_child_eng_14q,
+  emo.past.7.days.Calm = covid_child_eng_14r,
+  emo.past.7.days.Appreciative = covid_child_eng_14s,
+  # Emotional subscale continues by asking, how much MORE have you felt relativ to pre-covid
+  # Coding for 15a - 15f: (1) Not at all > ... > (5) A great deal
+  emo.more.Relaxed = covid_child_eng_15a,
+  emo.more.Hopeful = covid_child_eng_15b,
+  emo.more.ConfidentAboutFuture = covid_child_eng_15c,
+  emo.more.Hopeless = covid_child_eng_15d,
+  emo.more.AnxiousStressed = covid_child_eng_15e,
+  emo.more.Cheerful = covid_child_eng_15f,
+  # How have you coped check all that apply items (coping behaviors)
+  emo.cope.behavior.GettingGoodNightSleep = covid_child_eng_16___1,
+  emo.cope.behavior.MeditationMindfulness = covid_child_eng_16___2,
+  emo.cope.behavior.Prayer = covid_child_eng_16___3,
+  emo.cope.behavior.Writing_eg_poetry_journaling = covid_child_eng_16___4,
+  emo.cope.behavior.TalkingWithFriends_eg_facetime_zoom = covid_child_eng_16___5,
+  emo.cope.behavior.TextOrSocMediaFriends = covid_child_eng_16___6,
+  emo.cope.behavior.FamilyActivities_eg_games_sports = covid_child_eng_16___7,
+  emo.cope.behavior.Exercising = covid_child_eng_16___8,
+  emo.cope.behavior.PlayingInstrument = covid_child_eng_16___9,
+  emo.cope.behavior.ListenMusic = covid_child_eng_16___10,
+  emo.cope.behavior.WatchMovie = covid_child_eng_16___11,
+  emo.cope.behavior.SpendTimeWithPet = covid_child_eng_16___12,
+  emo.cope.behavior.MentalHealthCare_eg_therapists_psychologists_psychiatrists = covid_child_eng_16___13,
+  emo.cope.behavior.PlayingVideoGames = covid_child_eng_16___14,
+  emo.cope.behavior.ReadingABook = covid_child_eng_16___15,
+  emo.cope.behavior.ArtsOrCrafts = covid_child_eng_16___16,
+  emo.cope.behavior.PlayingBoardGamesCard = covid_child_eng_16___17,
+  emo.cope.behavior.EatingComfortFood_eg_candy_chips = covid_child_eng_16___18,
+  emo.cope.behavior.EatingHealthier = covid_child_eng_16___19,
+  emo.cope.behavior.IncreasedSelfCare_eg_takingbaths_givingselfafacial = covid_child_eng_16___20,
+  emo.cope.behavior.TakingVitaminsHerbalsForImmuneSys = covid_child_eng_16___21,
+  emo.cope.behavior.DrinkingAlcohol = covid_child_eng_16___22,
+  emo.cope.behavior.UsingTobacco_eg_smoking_vaping = covid_child_eng_16___23,
+  emo.cope.behavior.UsingMarijuana_eg_smoking_vaping_eating = covid_child_eng_16___24,
+  emo.cope.behavior.UsingOtherRecreationalDrugs = covid_child_eng_16___25,
+  emo.cope.behavior.NotSkippingPrescribedDrugs = covid_child_eng_16___26,
+  emo.cope.behavior.UsingNewPrescribedDrugs = covid_child_eng_16___27,
+  emo.cope.behavior.HelpingOthers = covid_child_eng_16___28,
+  emo.cope.behavior.None = covid_child_eng_16___29,
+  emo.cope.behavior.Other = covid_child_eng_16___30,
+  emo.cope.behavior.OtherText = covid_child_eng_16ex,
+  #
+  #
+  # COGNITIVE SUBSECTION (begins with ten stand-alone questions)
+  # 17a - 17k have coding: (1) Very slightly or not at all > ... > (5) Extremely
+  cog.past.7.days.ThinkingAboutCOVID = covid_child_eng_17a,
+  cog.past.7.days.EasilyDistracted = covid_child_eng_17b,
+  cog.past.7.days.ForgetfulInDailyActivity = covid_child_eng_17c,
+  cog.past.7.days.EasySwitchingTasks = covid_child_eng_17d,
+  cog.past.7.days.MoreFocus = covid_child_eng_17e,
+  cog.past.7.days.MoreDisorganized = covid_child_eng_17f,
+  cog.past.7.days.RacingThoughts = covid_child_eng_17g,
+  cog.past.7.days.ZoningOut = covid_child_eng_17h,
+  cog.past.7.days.AbleSustainAttention = covid_child_eng_17i,
+  cog.past.7.days.AblePlanActivities = covid_child_eng_17j,
+  cog.past.7.days.AbleReviewWork = covid_child_eng_17k,
+  # Code the factor for prospection:
+  cog.ProspectionOfBackToNormal = factor(
+    case_when(covid_child_eng_18 == 1 ~ 'Less than 1 month',
+              covid_child_eng_18 == 2 ~ '2 to 3 months',
+              covid_child_eng_18 == 3 ~ '3 to 6 months',
+              covid_child_eng_18 == 4 ~ '6 to 12 months',
+              covid_child_eng_18 == 5 ~ '12 months or more',
+              covid_child_eng_18 == 6 ~ 'Never'),
+    levels = c('Less than 1 month', '2 to 3 months', '3 to 6 months',
+               '6 to 12 months', '12 months or more', 'Never')
+  ),
+  #
+  #
+  # SOCIAL SUBSECTION
+  # 2 standalone:
+  # NOTE, the answer choices differ for this question, tho it can receive the same name
+  # When the variable is coded (not simply renamed), we will use different factor
+  # levels for each time point
+  soc.WhenSocialDistancingStart = factor(
+    case_when(covid_child_eng_19 == 1 ~ 'before school closures',
+              covid_child_eng_19 == 2 ~ 'same day as school closures',
+              covid_child_eng_19 == 3 ~ 'afer school closures',
+              covid_child_eng_19 == 4 ~ 'same day as the stay-at-home order by local gov',
+              covid_child_eng_19 == 5 ~ 'do not practice social distancing'),
+    levels = c('before school closures', 'same day as school closures',
+               'afer school closures', 'same day as the stay-at-home order by local gov',
+               'do not practice social distancing')
+  ),
+  soc.OpinionOfRestrictions = factor(
+    case_when(covid_child_eng_20 == 1 ~ 'I think the restrictions are not strict enough',
+              covid_child_eng_20 == 2 ~ 'I think the restrictions are too strict',
+              covid_child_eng_20 == 3 ~ 'I think the restrictions are good'),
+    levels = c('I think the restrictions are not strict enough', 
+               'I think the restrictions are too strict',
+               'I think the restrictions are good')
+  ),
+  # Asking if participants miss 12 behaviors (checkboxes w/ common string):
+  soc.miss.most.behavior.ContactFriendsInPerson = covid_child_eng_21___1,
+  soc.miss.most.behavior.ContactExtendedFamilyInPerson = covid_child_eng_21___2,
+  soc.miss.most.behavior.GoingToSchool = covid_child_eng_21___3,
+  soc.miss.most.behavior.SchoolWork = covid_child_eng_21___4,
+  soc.miss.most.behavior.OutdoorFamilyActivity_eg_beach_forest_natlpark = covid_child_eng_21___5,
+  soc.miss.most.behavior.PublicFamilyActivity_eg_museums_playgrounds_theaters = covid_child_eng_21___6,
+  soc.miss.most.behavior.JoiningATeam = covid_child_eng_21___7,
+  soc.miss.most.behavior.GoingToRestaurantOrStore = covid_child_eng_21___8,
+  soc.miss.most.behavior.MusicTheaterArt = covid_child_eng_21___9,
+  soc.miss.most.behavior.InPersonReligious = covid_child_eng_21___10,
+  soc.miss.most.behavior.HavingJob_if_work_or_volunteer = covid_child_eng_21___11,
+  soc.miss.most.behavior.Other = covid_child_eng_21___12,
+  soc.miss.most.behavior.OtherText = covid_child_eng_21ex,
+  # Asking if participants DON'T miss the same 12 behaviors (checkboxes again)
+  soc.miss.least.behavior.ContactFriendsInPerson = covid_child_eng_22___1,
+  soc.miss.least.behavior.ContactExtendedFamilyInPerson = covid_child_eng_22___2,
+  soc.miss.least.behavior.GoingToSchool = covid_child_eng_22___3,
+  soc.miss.least.behavior.SchoolWork = covid_child_eng_22___4,
+  soc.miss.least.behavior.OutdoorFamilyActivity_eg_beach_forest_natlpark = covid_child_eng_22___5,
+  soc.miss.least.behavior.PublicFamilyActivity_eg_museums_playgrounds_theaters = covid_child_eng_22___6,
+  soc.miss.least.behavior.JoiningATeam = covid_child_eng_22___7,
+  soc.miss.least.behavior.GoingToRestaurantOrStore = covid_child_eng_22___8,
+  soc.miss.least.behavior.MusicTheaterArt = covid_child_eng_22___9,
+  soc.miss.least.behavior.InPersonReligious = covid_child_eng_22___10,
+  soc.miss.least.behavior.HavingJob_if_work_or_volunteer = covid_child_eng_22___11,
+  soc.miss.least.behavior.Other = covid_child_eng_22___12,
+  soc.miss.least.behavior.OtherText = covid_child_eng_22ex,
+  # Other social subsection standalones:
+  soc.how.often.GoOutside_eg_walk_run_walkpet_backyard = factor(
+    case_when(covid_child_eng_23 == 1 ~ 'Multiple times a day',
+              covid_child_eng_23 == 2 ~ 'Once a day',
+              covid_child_eng_23 == 3 ~ 'Every couple of days',
+              covid_child_eng_23 == 4 ~ 'Once a week',
+              covid_child_eng_23 == 5 ~ 'Less than once a week'),
+    levels = c('Multiple times a day', 'Once a day',
+               'Every couple of days', 'Once a week',
+               'Less than once a week')
+  ),
+  soc.how.often.FollowedStayAtHomeRules = factor(
+    case_when(covid_child_eng_24 == 1 ~ 'Never',
+              covid_child_eng_24 == 2 ~ 'Seldom',
+              covid_child_eng_24 == 3 ~ 'Sometimes',
+              covid_child_eng_24 == 4 ~ 'Often',
+              covid_child_eng_24 == 5 ~ 'Always'),
+    levels = c('Never', 'Seldom', 'Sometimes', 'Often', 'Always')
+  ),
+  soc.since.closure.how.often.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming = 
+    factor(
+      case_when(covid_child_eng_25 == 1 ~ 'Every day or almost every day',
+                covid_child_eng_25 == 1 ~ 'Several times a week',
+                covid_child_eng_25 == 1 ~ 'About once a week',
+                covid_child_eng_25 == 1 ~ 'Less often'),
+      levels = c('Every day or almost every day', 'Several times a week', 
+                 'About once a week', 'Less often')
+    ),
+  ### A common string question: how do you stay connected (since school closure)
+  # NOTE: AT TIME 2, WE ASK THE IDENTICAL QUESTION, BUT THE STRING IS 'SINCE SEPTEMBER'.
+  # THIS MEANS THAT WE ARE STILL (ROUGHLY) ASKING ABOUT THE LAST 6 MONTHS.
+  # DURING DATA ANALYSIS, USER OF THIS DATA WILL BE RESPONSIBLE FOR ALIGNING AND RENAMING
+  # EACH SOCIAL BEHAVIOR, IRRESPECTIVE OF IF THE QUESTION ASKED ABOUT SINCE SCHOOL CLOUSRE
+  # (AS IN HERE AT TIME 1) OR SINCE SEPTEMBER (AS IN TIME 2)
+  soc.since.closure.how.do.you.stay.connected.TextingOrMessageOnSocMedia = covid_child_eng_26___1,
+  soc.since.closure.how.do.you.stay.connected.VoiceOnlyPhoneCalls = covid_child_eng_26___2,
+  soc.since.closure.how.do.you.stay.connected.VideoCalls_eg_FaceTime_GoogleDuo_Skype_Zoom = covid_child_eng_26___3,
+  soc.since.closure.how.do.you.stay.connected.SocMediaLiveChats = covid_child_eng_26___4,
+  soc.since.closure.how.do.you.stay.connected.PostOnSocMedia = covid_child_eng_26___5,
+  soc.since.closure.how.do.you.stay.connected.SocMediaToSupportFriends_eg_liking_sharing_retweeting = covid_child_eng_26___6,
+  soc.since.closure.how.do.you.stay.connected.OnlineGaming = covid_child_eng_26___7,
+  ### Common string checkboxes about sleep
+  soc.sleep.changes.past.2or3.months.GettingMoreSleep = covid_child_eng_27___1,
+  soc.sleep.changes.past.2or3.months.GettingLessSleep = covid_child_eng_27___2,
+  soc.sleep.changes.past.2or3.months.MoreVividDreamsOrMoreDreams = covid_child_eng_27___3,
+  soc.sleep.changes.past.2or3.months.FewerDreams = covid_child_eng_27___4,
+  soc.sleep.changes.past.2or3.months.MoreRegularSleepHours = covid_child_eng_27___5,
+  soc.sleep.changes.past.2or3.months.MoreInterruptedSleepDifficultyStayAsleep = covid_child_eng_27___6,
+  soc.sleep.changes.past.2or3.months.MoreIrregularSleep = covid_child_eng_27___7,
+  soc.sleep.changes.past.2or3.months.BetterQualitySleep = covid_child_eng_27___8,
+  soc.sleep.changes.past.2or3.months.TroubleWakingUp = covid_child_eng_27___9,
+  soc.sleep.changes.past.2or3.months.MoreDaytimeNaps = covid_child_eng_27___10,
+  soc.sleep.changes.past.2or3.months.MoreAlertDuringDay = covid_child_eng_27___11,
+  soc.sleep.changes.past.2or3.months.Other = covid_child_eng_27___12,
+  soc.sleep.changes.past.2or3.months.OtherText = covid_child_eng_27ex,
+  # End sleep questions
+  soc.past.7.days.how.much.time.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming = 
+    factor(
+      case_when(covid_child_eng_28 == 1 ~ 'less than 30 minutes per day',
+                covid_child_eng_28 == 2 ~ '30 minutes to 1 hr per day',
+                covid_child_eng_28 == 3 ~ '1 to 2 hrs per day',
+                covid_child_eng_28 == 4 ~ '2 to 4 hrs per day',
+                covid_child_eng_28 == 5 ~ '4 to 6 hrs per day',
+                covid_child_eng_28 == 6 ~ 'more than 6 hrs per day'),
+      levels = c('less than 30 minutes per day', '30 minutes to 1 hr per day',
+                 '1 to 2 hrs per day', '2 to 4 hrs per day',
+                 '4 to 6 hrs per day', 'more than 6 hrs per day')
+    ),
+  soc.PhoneTabletScreenTime = covid_child_eng_29,
+  soc.since.COVID.start.MostImportantSocialActivityNoLongerDoing = covid_child_eng_30,
+  soc.HowKeepSociallyConnectedFriendsFamily = covid_child_eng_31,
+  # NOTE: 4 QUESTIONS THAT ARE ADDED AT TIME 2 APPEAR HERE, BUT DON'T APPEAR HERE.
+  soc.AnythingElseToShare = covid_child_eng_open,
+  # FINAL QUESTIONS (mostly for UI/UX)
+  EnterEmailForAmazonGiftCardRaffle = covid_child_eng_end
+  # The next two variables are not renamed, cos they were already deleted.
+  #covid_child_eng_no_cons
+  #covid_child_survey_2_complete
+)
+```
+
+
+# Create a renaming key
+
+1. Copy and paste the contents between `rename(` and the closing `)`
+2. Search and replace " = " with "," using a text editor
+3. Search replace lines starting with "#" with nothing (delete comments)
+3. The result is comma-seperated words
+4. Every odd word (1, 3, 5, etc) is a new variable name, all else are old names
+```{r}
+writeLines('
+  ID,participant_id,
+  timestamp,covid_child_survey_timestamp,
+  age,covid_child_eng_age,
+  sex,covid_child_eng_sex,
+  survey_date,covid_child_eng_date,
+  subject_name,covid_child_eng_init,
+  zip_code,covid_child_eng_zip,
+  school_grade,covid_child_eng_grade,
+  num_siblings,covid_child_eng_sib,
+  school_name,covid_child_eng_school,
+  school_format,covid_child_eng_school2,
+  exp.NegativeEffect,covid_child_eng_1,
+  exp.most.neg.WorryAboutSomeoneHasHadVirus,covid_child_eng_2___1,
+  exp.most.neg.StayAtHome,covid_child_eng_2___2,
+  exp.most.neg.NotSeeingFriendsInPerson,covid_child_eng_2___3,
+  exp.most.neg.ThinkHowManyPeopleDying,covid_child_eng_2___4,
+  exp.most.neg.NotGoingToSchool,covid_child_eng_2___5,
+  exp.most.neg.MoreFamilyTime,covid_child_eng_2___6,
+  exp.most.neg.NoScheduleStressDisorient,covid_child_eng_2___7,
+  exp.most.neg.NoAccessToResources,covid_child_eng_2___8,
+  exp.PositiveEffect,covid_child_eng_3,
+  exp.most.positive.LessSchoolwork,covid_child_eng_4___1,
+  exp.most.positive.LessSchoolStress,covid_child_eng_4___2,
+  exp.most.positive.MoreTimeRelax,covid_child_eng_4___3,
+  exp.most.positive.DoThingsUsuallyDontHaveTimeFor_eg_art_music_writing_cooking,covid_child_eng_4___4,
+  exp.most.positive.MoreFreePhoneComputerTime_eg_texting_socialmedia,covid_child_eng_4___5,
+  exp.most.positive.WatchMoreTV,covid_child_eng_4___6,
+  exp.most.positive.MoreTimeExerciseOrGoOutside,covid_child_eng_4___7,
+  exp.most.positive.GetMoreSleep,covid_child_eng_4___8,
+  exp.most.positive.MoreFamilyTime,covid_child_eng_4___9,
+  exp.most.positive.MoreTimeWithPets,covid_child_eng_4___10,
+  exp.most.positive.AvoidingUnwantedSocialInteraction,covid_child_eng_4___11,
+  exp.most.positive.MoreControlCreateSchedule,covid_child_eng_4___12,
+  exp.EverTested,covid_child_eng_5,
+  exp.EverPositiveTest,covid_child_eng_5a,
+  exp.DateOfTest,covid_child_eng_5b,
+  exp.KnowAnyonePositiveTest,covid_child_eng_6,
+  exp.anyone.positive.test.Mother,covid_child_eng_6a___1,
+  exp.anyone.positive.test.Father,covid_child_eng_6a___2,
+  exp.anyone.positive.test.Sibling,covid_child_eng_6a___3,
+  exp.anyone.positive.test.Grandparent,covid_child_eng_6a___4,
+  exp.anyone.positive.test.AuntUncle,covid_child_eng_6a___5,
+  exp.anyone.positive.test.Cousin,covid_child_eng_6a___6,
+  exp.anyone.positive.test.FriendClassmate,covid_child_eng_6a___7,
+  exp.anyone.positive.test.Neighbor,covid_child_eng_6a___8,
+  exp.anyone.positive.test.Teacher,covid_child_eng_6a___9,
+  exp.anyone.positive.test.FamilyMemberOfFriend,covid_child_eng_6a___10,
+  exp.anyone.positive.test.Other,covid_child_eng_6a___11,
+  exp.anyone.positive.test.OtherText,covid_child_eng_6b,
+  exp.AnyoneInHouseDied,covid_child_eng_7,
+  exp.anyone.died.in.house.Mother,covid_child_eng_7a___1,
+  exp.anyone.died.in.house.Father,covid_child_eng_7a___2,
+  exp.anyone.died.in.house.Sibling,covid_child_eng_7a___3,
+  exp.anyone.died.in.house.Grandparent,covid_child_eng_7a___4,
+  exp.anyone.died.in.house.AuntUncle,covid_child_eng_7a___5,
+  exp.anyone.died.in.house.Cousin,covid_child_eng_7a___6,
+  exp.anyone.died.in.house.Other,covid_child_eng_7a___7,
+  exp.anyone.died.in.house.OtherText,covid_child_eng_7b,
+  exp.AnyFriendsOrFriendsFamilyHadCOVID,covid_child_eng_8,
+  exp.WhoFriendsOrFriendsFamilyHadCOVID,covid_child_eng_8a,
+  exp.AnyFriendsOrFriendsFamilyHospitalized,covid_child_eng_8b,
+  exp.WhoFriendsOrFriendsFamilyHospitalized,covid_child_eng_8c,
+  school_name,covid_child_eng_9,
+  school_closure_date,covid_child_eng_9a,
+  remote.school.format.initial.SchoolSentPackets,covid_child_eng_10___1,
+  remote.school.format.initial.SchoolSentOnlineAssignments_no_virtual_class,covid_child_eng_10___2,
+  remote.school.format.initial.SchoolOrganizedOnlineClass,covid_child_eng_10___3,
+  remote.school.format.initial.StartedAlternativeOnlineAcademicProgram,covid_child_eng_10___4,
+  remote.school.format.initial.SchoolDidNotContinue,covid_child_eng_10___5,
+  remote.school.format.initial.WasAlreadyInCyberSchoolNoChange,covid_child_eng_10___6,
+  remote.school.format.initial.Other,covid_child_eng_10___7,
+  remote.school.format.initial.OtherText,covid_child_eng_10ex,
+  emo.past.7.days.HowStressful.Uncertainty,covid_child_eng_11,
+  emo.past.7.days.HowStressful.Disruption,covid_child_eng_12,
+  emo.past.7.days.HowWorried.HouseholdMemberBecomeSick,covid_child_eng_13,
+  emo.past.7.days.Anxious,covid_child_eng_14a,
+  emo.past.7.days.Angry,covid_child_eng_14b,
+  emo.past.7.days.Content,covid_child_eng_14c,
+  emo.past.7.days.Afraid,covid_child_eng_14d,
+  emo.past.7.days.Happy,covid_child_eng_14e,
+  emo.past.7.days.Sad,covid_child_eng_14f,
+  emo.past.7.days.Worried,covid_child_eng_14g,
+  emo.past.7.days.Irritable,covid_child_eng_14h,
+  emo.past.7.days.Concerned,covid_child_eng_14i,
+  emo.past.7.days.Stressed,covid_child_eng_14j,
+  emo.past.7.days.Relieved,covid_child_eng_14k,
+  emo.past.7.days.Distressed,covid_child_eng_14l,
+  emo.past.7.days.Lonely,covid_child_eng_14m,
+  emo.past.7.days.Bored,covid_child_eng_14n,
+  emo.past.7.days.Hopeless,covid_child_eng_14o,
+  emo.past.7.days.Frustrated,covid_child_eng_14p,
+  emo.past.7.days.Disappointed,covid_child_eng_14q,
+  emo.past.7.days.Calm,covid_child_eng_14r,
+  emo.past.7.days.Appreciative,covid_child_eng_14s,
+  emo.more.Relaxed,covid_child_eng_15a,
+  emo.more.Hopeful,covid_child_eng_15b,
+  emo.more.ConfidentAboutFuture,covid_child_eng_15c,
+  emo.more.Hopeless,covid_child_eng_15d,
+  emo.more.AnxiousStressed,covid_child_eng_15e,
+  emo.more.Cheerful,covid_child_eng_15f,
+  emo.cope.behavior.GettingGoodNightSleep,covid_child_eng_16___1,
+  emo.cope.behavior.MeditationMindfulness,covid_child_eng_16___2,
+  emo.cope.behavior.Prayer,covid_child_eng_16___3,
+  emo.cope.behavior.Writing_eg_poetry_journaling,covid_child_eng_16___4,
+  emo.cope.behavior.TalkingWithFriends_eg_facetime_zoom,covid_child_eng_16___5,
+  emo.cope.behavior.TextOrSocMediaFriends,covid_child_eng_16___6,
+  emo.cope.behavior.FamilyActivities_eg_games_sports,covid_child_eng_16___7,
+  emo.cope.behavior.Exercising,covid_child_eng_16___8,
+  emo.cope.behavior.PlayingInstrument,covid_child_eng_16___9,
+  emo.cope.behavior.ListenMusic,covid_child_eng_16___10,
+  emo.cope.behavior.WatchMovie,covid_child_eng_16___11,
+  emo.cope.behavior.SpendTimeWithPet,covid_child_eng_16___12,
+  emo.cope.behavior.MentalHealthCare_eg_therapists_psychologists_psychiatrists,covid_child_eng_16___13,
+  emo.cope.behavior.PlayingVideoGames,covid_child_eng_16___14,
+  emo.cope.behavior.ReadingABook,covid_child_eng_16___15,
+  emo.cope.behavior.ArtsOrCrafts,covid_child_eng_16___16,
+  emo.cope.behavior.PlayingBoardGamesCard,covid_child_eng_16___17,
+  emo.cope.behavior.EatingComfortFood_eg_candy_chips,covid_child_eng_16___18,
+  emo.cope.behavior.EatingHealthier,covid_child_eng_16___19,
+  emo.cope.behavior.IncreasedSelfCare_eg_takingbaths_givingselfafacial,covid_child_eng_16___20,
+  emo.cope.behavior.TakingVitaminsHerbalsForImmuneSys,covid_child_eng_16___21,
+  emo.cope.behavior.DrinkingAlcohol,covid_child_eng_16___22,
+  emo.cope.behavior.UsingTobacco_eg_smoking_vaping,covid_child_eng_16___23,
+  emo.cope.behavior.UsingMarijuana_eg_smoking_vaping_eating,covid_child_eng_16___24,
+  emo.cope.behavior.UsingOtherRecreationalDrugs,covid_child_eng_16___25,
+  emo.cope.behavior.NotSkippingPrescribedDrugs,covid_child_eng_16___26,
+  emo.cope.behavior.UsingNewPrescribedDrugs,covid_child_eng_16___27,
+  emo.cope.behavior.HelpingOthers,covid_child_eng_16___28,
+  emo.cope.behavior.None,covid_child_eng_16___29,
+  emo.cope.behavior.Other,covid_child_eng_16___30,
+  emo.cope.behavior.OtherText,covid_child_eng_16ex,
+  cog.past.7.days.ThinkingAboutCOVID,covid_child_eng_17a,
+  cog.past.7.days.EasilyDistracted,covid_child_eng_17b,
+  cog.past.7.days.ForgetfulInDailyActivity,covid_child_eng_17c,
+  cog.past.7.days.EasySwitchingTasks,covid_child_eng_17d,
+  cog.past.7.days.MoreFocus,covid_child_eng_17e,
+  cog.past.7.days.MoreDisorganized,covid_child_eng_17f,
+  cog.past.7.days.RacingThoughts,covid_child_eng_17g,
+  cog.past.7.days.ZoningOut,covid_child_eng_17h,
+  cog.past.7.days.AbleSustainAttention,covid_child_eng_17i,
+  cog.past.7.days.AblePlanActivities,covid_child_eng_17j,
+  cog.past.7.days.AbleReviewWork,covid_child_eng_17k,
+  cog.ProspectionOfBackToNormal,covid_child_eng_18,
+  soc.WhenSocialDistancingStart,covid_child_eng_19,
+  soc.OpinionOfRestrictions,covid_child_eng_20,
+  soc.miss.most.behavior.ContactFriendsInPerson,covid_child_eng_21___1,
+  soc.miss.most.behavior.ContactExtendedFamilyInPerson,covid_child_eng_21___2,
+  soc.miss.most.behavior.GoingToSchool,covid_child_eng_21___3,
+  soc.miss.most.behavior.SchoolWork,covid_child_eng_21___4,
+  soc.miss.most.behavior.OutdoorFamilyActivity_eg_beach_forest_natlpark,covid_child_eng_21___5,
+  soc.miss.most.behavior.PublicFamilyActivity_eg_museums_playgrounds_theaters,covid_child_eng_21___6,
+  soc.miss.most.behavior.JoiningATeam,covid_child_eng_21___7,
+  soc.miss.most.behavior.GoingToRestaurantOrStore,covid_child_eng_21___8,
+  soc.miss.most.behavior.MusicTheaterArt,covid_child_eng_21___9,
+  soc.miss.most.behavior.InPersonReligious,covid_child_eng_21___10,
+  soc.miss.most.behavior.HavingJob_if_work_or_volunteer,covid_child_eng_21___11,
+  soc.miss.most.behavior.Other,covid_child_eng_21___12,
+  soc.miss.most.behavior.OtherText,covid_child_eng_21ex,
+  soc.miss.least.behavior.ContactFriendsInPerson,covid_child_eng_22___1,
+  soc.miss.least.behavior.ContactExtendedFamilyInPerson,covid_child_eng_22___2,
+  soc.miss.least.behavior.GoingToSchool,covid_child_eng_22___3,
+  soc.miss.least.behavior.SchoolWork,covid_child_eng_22___4,
+  soc.miss.least.behavior.OutdoorFamilyActivity_eg_beach_forest_natlpark,covid_child_eng_22___5,
+  soc.miss.least.behavior.PublicFamilyActivity_eg_museums_playgrounds_theaters,covid_child_eng_22___6,
+  soc.miss.least.behavior.JoiningATeam,covid_child_eng_22___7,
+  soc.miss.least.behavior.GoingToRestaurantOrStore,covid_child_eng_22___8,
+  soc.miss.least.behavior.MusicTheaterArt,covid_child_eng_22___9,
+  soc.miss.least.behavior.InPersonReligious,covid_child_eng_22___10,
+  soc.miss.least.behavior.HavingJob_if_work_or_volunteer,covid_child_eng_22___11,
+  soc.miss.least.behavior.Other,covid_child_eng_22___12,
+  soc.miss.least.behavior.OtherText,covid_child_eng_22ex,
+  soc.how.often.GoOutside_eg_walk_run_walkpet_backyard,covid_child_eng_23,
+  soc.how.often.FollowedStayAtHomeRules,covid_child_eng_24,
+  soc.since.closure.how.often.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming,covid_child_eng_25,
+  soc.since.closure.how.do.you.stay.connected.TextingOrMessageOnSocMedia,covid_child_eng_26___1,
+  soc.since.closure.how.do.you.stay.connected.VoiceOnlyPhoneCalls,covid_child_eng_26___2,
+  soc.since.closure.how.do.you.stay.connected.VideoCalls_eg_FaceTime_GoogleDuo_Skype_Zoom,covid_child_eng_26___3,
+  soc.since.closure.how.do.you.stay.connected.SocMediaLiveChats,covid_child_eng_26___4,
+  soc.since.closure.how.do.you.stay.connected.PostOnSocMedia,covid_child_eng_26___5,
+  soc.since.closure.how.do.you.stay.connected.SocMediaToSupportFriends_eg_liking_sharing_retweeting,covid_child_eng_26___6,
+  soc.since.closure.how.do.you.stay.connected.OnlineGaming,covid_child_eng_26___7,
+  soc.sleep.changes.past.2or3.months.GettingMoreSleep,covid_child_eng_27___1,
+  soc.sleep.changes.past.2or3.months.GettingLessSleep,covid_child_eng_27___2,
+  soc.sleep.changes.past.2or3.months.MoreVividDreamsOrMoreDreams,covid_child_eng_27___3,
+  soc.sleep.changes.past.2or3.months.FewerDreams,covid_child_eng_27___4,
+  soc.sleep.changes.past.2or3.months.MoreRegularSleepHours,covid_child_eng_27___5,
+  soc.sleep.changes.past.2or3.months.MoreInterruptedSleepDifficultyStayAsleep,covid_child_eng_27___6,
+  soc.sleep.changes.past.2or3.months.MoreIrregularSleep,covid_child_eng_27___7,
+  soc.sleep.changes.past.2or3.months.BetterQualitySleep,covid_child_eng_27___8,
+  soc.sleep.changes.past.2or3.months.TroubleWakingUp,covid_child_eng_27___9,
+  soc.sleep.changes.past.2or3.months.MoreDaytimeNaps,covid_child_eng_27___10,
+  soc.sleep.changes.past.2or3.months.MoreAlertDuringDay,covid_child_eng_27___11,
+  soc.sleep.changes.past.2or3.months.Other,covid_child_eng_27___12,
+  soc.sleep.changes.past.2or3.months.OtherText,covid_child_eng_27ex,
+  soc.past.7.days.how.much.time.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming,covid_child_eng_28,
+  soc.PhoneTabletScreenTime,covid_child_eng_29,
+  soc.since.COVID.start.MostImportantSocialActivityNoLongerDoing,covid_child_eng_30,
+  soc.HowKeepSociallyConnectedFriendsFamily,covid_child_eng_31,
+  soc.AnythingElseToShare,covid_child_eng_open,
+  EnterEmailForAmazonGiftCardRaffle,covid_child_eng_end'
+, con='time1_tmp_txt.txt')
+
+system('cat time1_tmp_txt.txt | head')
+# Now read it back in as a data frame, creating a new row for each line
+redcap_names_key = scan('time1_tmp_txt.txt', what = character(), sep = '\n')
+# Note, using %<>% will modify the object redcap_names_key
+# so that it becomes the result of the operations that it is being piped into below
+redcap_names_key %<>%
+  # Each row now contains the new name and the old name in one string, so split them
+  # First drop the trailing commas:
+  str_replace(",$", "") %>%
+  # Now split along commas
+  str_split(",") %>%
+  # and collect them into seperate columns of data frame
+  reduce(rbind) %>% 
+  as.data.frame %>%
+  set_names(c('new_name', 'old_name')) %>%
+  remove_rownames()
+
+# Write this out as a csv
+write_csv(redcap_names_key, "redcap_names_key_TIME1.csv", col_names = T)
+system('cat redcap_names_key_TIME1.csv | head')
+```
+
+# Before proceeding, check the ID for any weirdness
+```{r}
+cat('Number of duplicates: ', anyDuplicated(d4$ID), '\n')
+d4$ID
+```
+
+After doing so the following was found
+1. some subjects have additional ID attached to their EF ID pertaining to another study
+```{r}
+# Filter out the pilot, and fix the format of the two list in 1 above
+d4 %<>% mutate(ID=str_extract(ID, 'EF[[:digit:]]{4}C[0-9]'))
+```
+
+
+# Complete! Save out the data
+# Save this uncoded, but complete, raw data file
+```{r}
+system('mkdir ../../data/Timepoint1')
+d4 %>%
+  saveRDS("../../data/Timepoint1/Time1_RawFilteredRenamedFactorcoded.rds")
+```

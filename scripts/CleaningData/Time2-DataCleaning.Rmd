@@ -24,6 +24,8 @@ to the version that is run (sourced) below.
 ```{r}
 list.files('../../data/raw_exports')
 if (!any(grepl('coded_.+csv', list.files("../../data/raw_exports")))) {
+  # NOTE, YOU NEED TO MAKE SURE THAT IN THE SCRIPT BELOW
+  # IT IS HARDCODED TO POINT TO THE CORRESPONDING DATA
   source('EFStudySurveyFormsDa_R_2021-03-29_1556.r')
 }
 list.files('../../data/raw_exports')
@@ -101,20 +103,14 @@ covidT2.dict = EF.dict %>%
 ```{r}
 dict = read.csv("../../docs/ChildCOVID-Time2_DataDictionary.csv",
                 stringsAsFactors = F)
-view(dict)
+
 # The variable names need some data cleaning to remove javascript from Qualtrics
 dict$Variable.Name = dict$Field.Label %>% remove_HTML
-view(dict %>% select(Field.Label, Variable.Name))
+
 # Now make a variable for the categories (Emotional, Experience, Cognitive, Social)
 dict$Section = dict$Section.Header %>%
   str_extract('^[[:alpha:]]\\. .+') %>% sub('[0-9]+\ [[:alnum:]]+.+$', '', .) %>%
   zoo::na.locf(., na.rm=F)
-view(dict %>% select(Section, Section.Header))
-View(dict %>% 
-       mutate_at(vars(Matrix.Group.Name, Variable...Field.Name), ~replace(., .=="", NA)) %>%
-       mutate(Coded.Name = coalesce(Matrix.Group.Name, Variable...Field.Name)) %>%
-       select(Section.Header, Section, Field.Label, Variable.Name, 
-              Coded.Name, Matrix.Group.Name, Variable...Field.Name))
 ```
 
 
@@ -170,9 +166,16 @@ Start by naming the variables that are not shown to the participant \
 These variables do not have a corresponding entry in the ditionary.
 ```{r}
 # Note, these are in order of the variables
-d4 = d3 %>% rename(
-  # rename() works as follows:
-  # new_name = old_name
+d4 = d3 %>% transmute(
+  # transmute() works as follows:
+  # new_name = old_name will replicate old_name and call it new_name
+  # if old_name never appears on the left-hand side of an `... = ...` expression,
+  # then it will be dropped, essentially renaming it to `new_name` as is.
+  # We can also do some basic coding of the variables in the same function like so:
+  # `new_name = old_name^2`. Now new_name is old_name squared! If we didn't care about
+  # the raw version (old_name), then we don't reassign it a value, and we have 
+  # in this way renamed and recoded the variable. We could also do `old_name = old_name^2`
+  # if needed only to recode the variable.
   ID = participant_id,
   timestamp = covid_child_survey_2_timestamp,
   age = covid_child_eng_age_v2,
@@ -278,7 +281,7 @@ d4 = d3 %>% rename(
   # Emotional subscale continues by asking, how much MORE have you felt relativ to pre-covid
   emo.more.Relaxed = covid_child_eng_15a_v2,
   emo.more.Hopeful = covid_child_eng_15b_v2,
-  emo.more.ConfidentFuture = covid_child_eng_15c_v2,
+  emo.more.ConfidentAboutFuture = covid_child_eng_15c_v2,
   emo.more.Hopeless = covid_child_eng_15d_v2,
   emo.more.AnxiousStressed = covid_child_eng_15e_v2,
   emo.more.Cheerful = covid_child_eng_15f_v2,
@@ -328,13 +331,39 @@ d4 = d3 %>% rename(
   cog.past.7.days.AbleSustainAttention = covid_child_eng_17i_v2,
   cog.past.7.days.AblePlanActivities = covid_child_eng_17j_v2,
   cog.past.7.days.AbleReviewWork = covid_child_eng_17k_v2,
-  cog.ProspectionOfBackToNormal = covid_child_eng_18_v2,
+  cog.ProspectionOfBackToNormal = factor(
+    case_when(covid_child_eng_18_v2 == 1 ~ 'Less than 1 month',
+              covid_child_eng_18_v2 == 2 ~ '2 to 3 months',
+              covid_child_eng_18_v2 == 3 ~ '3 to 6 months',
+              covid_child_eng_18_v2 == 4 ~ '6 to 12 months',
+              covid_child_eng_18_v2 == 5 ~ '12 months or more',
+              covid_child_eng_18_v2 == 6 ~ 'Never'),
+    levels = c('Less than 1 month', '2 to 3 months', '3 to 6 months',
+               '6 to 12 months', '12 months or more', 'Never')
+  ),
   #
   #
   # SOCIAL SUBSECTION
   # 2 standalone:
-  soc.WhenSocialDistancingStart = covid_child_eng_19_v2, 
-  soc.OpinionOfRestrictions = covid_child_eng_20_v2,
+  soc.WhenSocialDistancingStart = factor(
+    case_when(covid_child_eng_19_v2 == 1 ~ 'before school closures this spring',
+              covid_child_eng_19_v2 == 2 ~ 'when school closed',
+              covid_child_eng_19_v2 == 3 ~ 'this summer',
+              covid_child_eng_19_v2 == 4 ~ 'this fall',
+              covid_child_eng_19_v2 == 5 ~ 'do not practice social distancing but used to',
+              covid_child_eng_19_v2 == 6 ~ 'never practiced social distancing'),
+    levels = c('before school closures this spring', 'when school closed', 'this summer', 
+               'this fall', 'do not practice social distancing but used to',
+               'never practiced social distancing')
+  ), 
+  soc.OpinionOfRestrictions = factor(
+    case_when(covid_child_eng_20_v2 == 1 ~ 'I think the restrictions are not strict enough',
+              covid_child_eng_20_v2 == 2 ~ 'I think the restrictions are too strict',
+              covid_child_eng_20_v2 == 3 ~ 'I think the restrictions are good'),
+    levels = c('I think the restrictions are not strict enough', 
+               'I think the restrictions are too strict',
+               'I think the restrictions are good')
+  ),
   # Asking if participants miss 12 behaviors (checkboxes w/ common string):
   soc.miss.most.behavior.ContactFriendsInPerson = covid_child_eng_21_v2___1,
   soc.miss.most.behavior.ContactExtendedFamilyInPerson = covid_child_eng_21_v2___2,
@@ -364,10 +393,37 @@ d4 = d3 %>% rename(
   soc.miss.least.behavior.Other = covid_child_eng_22_v2___12,
   soc.miss.least.behavior.OtherText = covid_child_eng_22ex_v2,
   # Other social subsection standalones:
-  soc.how.often.GoOutside_eg_walk_run_walkpet_backyard = covid_child_eng_23_v2,
-  soc.how.often.FollowedStayAtHomeRules = covid_child_eng_24_v2,
-  soc.since.september.how.often.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming = covid_child_eng_25_v2,
+  soc.how.often.GoOutside_eg_walk_run_walkpet_backyard = factor(
+    case_when(covid_child_eng_23_v2 == 1 ~ 'Multiple times a day',
+              covid_child_eng_23_v2 == 2 ~ 'Once a day',
+              covid_child_eng_23_v2 == 3 ~ 'Every couple of days',
+              covid_child_eng_23_v2 == 4 ~ 'Once a week',
+              covid_child_eng_23_v2 == 5 ~ 'Less than once a week'),
+    levels = c('Multiple times a day', 'Once a day',
+               'Every couple of days', 'Once a week',
+               'Less than once a week')
+  ),
+  soc.how.often.FollowedStayAtHomeRules = factor(
+    case_when(covid_child_eng_24_v2 == 1 ~ 'Never',
+              covid_child_eng_24_v2 == 2 ~ 'Seldom',
+              covid_child_eng_24_v2 == 3 ~ 'Sometimes',
+              covid_child_eng_24_v2 == 4 ~ 'Often',
+              covid_child_eng_24_v2 == 5 ~ 'Always'),
+    levels = c('Never', 'Seldom', 'Sometimes', 'Often', 'Always')
+  ),
+  soc.since.september.how.often.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming = 
+    factor(
+      case_when(covid_child_eng_25_v2 == 1 ~ 'Every day or almost every day',
+                covid_child_eng_25_v2 == 1 ~ 'Several times a week',
+                covid_child_eng_25_v2 == 1 ~ 'About once a week',
+                covid_child_eng_25_v2 == 1 ~ 'Less often'),
+      levels = c('Every day or almost every day', 'Several times a week', 
+                 'About once a week', 'Less often')
+    ),
   ### A common string question: how do you stay connected (since september)
+  # SEE NOTE IN THE TIME 1 SCRIPT. SUMMARY: THIS QUESTION IS IDENTICAL EXCEPT IN THE PROMPT
+  # HERE IT ASKS 'SINCE SEPTEMBER', AND AT T1 'SINCE SCHOOL CLOSURE'. IN BOTH CASES, IT IS 
+  # THE TIME INTERVAL FOR (ROUGHLY) THE PAST 6 MONTHS, SO THE RESPONSES ARE DIRCTLY COMPARABLE
   soc.since.september.how.do.you.stay.connected.TextingOrMessageOnSocMedia = covid_child_eng_26_v2___1,
   soc.since.september.how.do.you.stay.connected.VoiceOnlyPhoneCalls = covid_child_eng_26_v2___2,
   soc.since.september.how.do.you.stay.connected.VideoCalls_eg_FaceTime_GoogleDuo_Skype_Zoom = covid_child_eng_26_v2___3,
@@ -390,7 +446,18 @@ d4 = d3 %>% rename(
   soc.sleep.changes.past.2or3.months.Other = covid_child_eng_27_v2___12,
   soc.sleep.changes.past.2or3.months.OtherText = covid_child_eng_27ex_v2,
   # End sleep questions
-  soc.past.7.days.how.much.time.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming = covid_child_eng_28_v2,
+  soc.past.7.days.how.much.time.TalkChatFriendsOnline_eg_cellphone_socialmedia_onlinegaming = 
+    factor(
+      case_when(covid_child_eng_28_v2 == 1 ~ 'less than 30 minutes per day',
+                covid_child_eng_28_v2 == 2 ~ '30 minutes to 1 hr per day',
+                covid_child_eng_28_v2 == 3 ~ '1 to 2 hrs per day',
+                covid_child_eng_28_v2 == 4 ~ '2 to 4 hrs per day',
+                covid_child_eng_28_v2 == 5 ~ '4 to 6 hrs per day',
+                covid_child_eng_28_v2 == 6 ~ 'more than 6 hrs per day'),
+      levels = c('less than 30 minutes per day', '30 minutes to 1 hr per day',
+                 '1 to 2 hrs per day', '2 to 4 hrs per day',
+                 '4 to 6 hrs per day', 'more than 6 hrs per day')
+    ),
   soc.PhoneTabletScreenTime = covid_child_eng_29_v2,
   soc.since.COVID.start.MostImportantSocialActivityNoLongerDoing = covid_child_eng_30_v2,
   soc.HowKeepSociallyConnectedFriendsFamily = covid_child_eng_31_v2,
@@ -658,8 +725,10 @@ redcap_names_key %<>%
   # Now split along commas
   str_split(",") %>%
   # and collect them into seperate columns of data frame
-  reduce(rbind) %>% as.data.frame %>%
-  set_names('new_name', 'old_name')
+  reduce(rbind) %>% 
+  as.data.frame %>%
+  set_names(c('new_name', 'old_name')) %>%
+  remove_rownames()
 
 # Write this out as a csv
 write_csv(redcap_names_key, "redcap_names_key_TIME2.csv", col_names = T)
@@ -681,6 +750,6 @@ d4 %<>% filter(ID != "EF PILOT 3") %>% mutate(ID=str_extract(ID, 'EF[[:digit:]]{
 ```{r}
 system('mkdir ../../data/Timepoint2')
 d4 %>%
-  saveRDS("../../data/Timepoint2/RawFilteredRenamed.rds")
+  saveRDS("../../data/Timepoint2/Time2_RawFilteredRenamedFactorcoded.rds")
 ```
 
