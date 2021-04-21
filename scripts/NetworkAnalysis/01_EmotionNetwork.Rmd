@@ -7,6 +7,7 @@ output: html_document
 ```{r, message=FALSE, warning=FALSE, results='hold'}
 library(tidyverse)
 library(EGAnet)
+library(NetworkToolbox)
 box_path = Sys.glob("~/Box/Research/covid19")
 readRDS.box = function(file, ...) {readRDS(Sys.glob(file.path(box_path, file)), ...)}
 saveRDS.box = function(object, file, ...) {saveRDS(object, file.path(box_path, file), ...)}
@@ -19,6 +20,9 @@ write.csv.box = function(object, file, ...) {write.csv(object, file.path(box_pat
 covid = readRDS.box('data/*/time1+time2_LongData.rds')
 covid1 = covid %>% filter(timepoint == 1)
 covid2 = covid %>% filter(timepoint == 2)
+# Create and save in the global environment for reference a list of subjects who
+# both time 1 and 2 data
+overlapping_id = intersect(covid1$ID, covid2$ID)
 # separate out the emotion variables
 covid_emo.list = list('T1' = covid1, 
                      'T2' = covid2) %>%
@@ -36,15 +40,24 @@ covid_emo.list = list('T1' = covid1,
 ```
 
 # Emotional variables
+- Note each model is only fit for the overlapping subjects
+- No point otherwise, cos the people for whom we can calculate change over time \
+are only the overlapping subjects
 ```{r}
+d1 = covid_emo.list$T1 %>% filter(rownames(.) %in% overlapping_id) %>% remove_rownames
+net1 = EGA(d1, model='glass', algorithm = 'walktrap')
+net.loads(net1)
 covid_emo_cluster.list = covid_emo.list %>%
-  purrr::map(EGA, model = 'glass', algorithm = 'walktrap')
+  purrr::map(~{.x[rownames(.x) %in% overlapping_id, ]}) %>%
+  purrr::map(EGA, model = 'glasso', algorithm = 'walktrap', plot.EGA=F)
 ```
 
-# Plot the network, and view the clusters
+# Collect the network scores and variables loaings in long data frames
 ```{r}
-plot(caspe.emo.ega)
-net.loads(caspe.emo.ega)
+emo_loadings = covid_emo_cluster.list %>%
+  purrr::map(net.loads) %>%
+  imap_dfr()
+
 ```
 
 ```{r}
