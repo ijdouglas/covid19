@@ -1,0 +1,456 @@
+---
+title: "Longitudinal Latent Variable Analysis"
+author: "Ian Douglas"
+date: "4/18/2021"
+output: html_document
+---
+### setup
+```{r, warning=F, message=F}
+library(tidyverse)
+library(magrittr)
+library(psych)
+library(GPArotation)
+box_path = '~/Box/Research/covid19'
+read.csv.box = function(.path)
+{
+  read.csv(Sys.glob(file.path(box_path, .path)), stringsAsFactors = F)
+}
+readRDS.box = function(.path)
+{
+  readRDS(Sys.glob(file.path(box_path, .path)))
+}
+```
+
+
+# Read in the COVID time 1 and 2 surveys
+```{r}
+view(readRDS.box('data/T*1/*rds') %>% select_if(~all(na.omit(.) %in% 0:1)))
+view(readRDS.box('data/T*2/*rds') %>% select_if(~all(na.omit(.) %in% 0:1)))
+covid = readRDS.box('data/*/time1+time2_LongData.rds')
+covid1 = covid %>% filter(timepoint == 1)
+covid2 = covid %>% filter(timepoint == 2)
+check_all = covid %>% select_if(~all(na.omit(.) %in% 0:1))
+view(check_all_t1)
+```
+
+
+# Collect the variables for factor analysis
+```{r}
+covid_df.list = list('T1' = covid1, 'T2' = covid2)
+FA_df.list = map(covid_df.list, ~{
+  .x %>%
+    select(ID, starts_with(c('exp.most.neg.', 'exp.most.positive.', 'emo.cope.behavior.',
+                         'soc.how.do.you.stay.connected.', 'soc.sleep.changes.'))) %>%
+    select(-ends_with(c('Other', 'OtherText')), 
+           # Deleting None, because it is the absence of behavior
+           # checked also, only 4 of 133 at T1 endorsed
+           -emo.cope.behavior.None,
+           # also, the following variable had 0 standard deviation at time 2
+           -emo.cope.behavior.UsingOtherRecreationalDrugs)
+})
+identical(names(FA_df.list[[1]]), names(FA_df.list[[2]]))
+```
+
+
+<!-- # Read in the factor analysis from time 1 -->
+<!-- ```{r} -->
+
+<!-- ``` -->
+
+## Fit EFA for time 1 and time 2, and a CFA for model fit of T1 model at T2.
+```{r}
+efa.list = map(FA_df.list, ~{
+  R = cor(.x[-1], use = 'p')
+  N = sum(complete.cases(.x))
+  para = fa.parallel(R, n.obs = N, fm = 'ml', fa = 'fa', plot = F)
+  mod = fa(r = R, nfactors = para$nfact, n.obs = N, rotate = 'none', fm='ml')
+  return(mod)
+})
+```
+
+
+# Check the factor congruence between the timepoints
+```{r}
+factor.congruence(Varimax(efa.list$T1$loadings)$loadings, Varimax(efa.list$T2$loadings)$loadings)
+```
+
+# Find best rotation for time 1
+```{r}
+L = as.matrix(oblimin(efa.list$T1$loadings)$loadings)
+table(sapply(1:nrow(L), function(i) {
+  sum(as.vector(L[i,]) > .4)
+}))
+```
+
+
+`GPFoblq` or `fa(..., rotate = 'oblimin')` fits best.
+```{r}
+.R = cor(FA_df.list$T1[-1], use = 'p')
+.N = sum(complete.cases(FA_df.list$T1))
+efa.list$T1 <- fa(r = .R, 
+                  nfactors = 10, 
+                  n.obs = .N, 
+                  rotate = 'oblimin', 
+                  fm='ml')
+```
+
+# Plot how time 1 factors change over time
+```{r}
+# Get subjects overlapping
+overlapping_subjects = FA_df.list$T2 %>%
+  filter(ID %in% FA_df.list$T1$ID)
+# Get scores of T1 model for T2 data
+time1factors_time2scores = cbind(FA_df.list$T2[1], predict(efa.list$T1, FA_df.list$T2[-1]))
+# Get the scores from the T1 data with the T1 model
+time1factors_time1scores = cbind(FA_df.list$T1[1], 
+                                 factor.scores(FA_df.list$T1[-1], efa.list$T1)$scores)
+# Rbind these together (regular long format data)
+factors_longdata = rbind(
+  time1factors_time1scores %>% as.data.frame %>% mutate(timepoint = 1),
+  time1factors_time2scores %>% as.data.frame %>% mutate(timepoint = 2)
+)
+# Rbind with same subjects, same factors, but T1 data
+factors_overlapping_subjects = rbind(
+  time1factors_time1scores %>% as.data.frame %>% mutate(timepoint = 1),
+  time1factors_time2scores %>% as.data.frame %>% mutate(timepoint = 2)
+) %>%
+  #and here filter to only retain overallping subjects
+  filter(ID %in% overlapping_subjects$ID)
+# Plot
+factors_overlapping_subjects %>%
+  pivot_longer(c(-ID,-timepoint), names_to='Factor', values_to='Score') %>%
+  ggplot() + 
+  geom_line(aes(x = factor(timepoint), y = Score, group = ID, color = ID),
+            alpha = .7, show.legend = F) +
+  facet_wrap(~Factor) +
+  geom_smooth(aes(x = timepoint, y = Score),
+              method = 'lm', formula = 'y ~ x') +
+  scale_x_discrete(expand = c(0,0))
+```
+
+# Distribution of percent change from T1 to T2
+```{r}
+factors_overlapping_subjects %>%
+  # Rename the factors for interpretability
+  rename(
+    SocializingOnline = ML2,
+    PassiveCoping = ML6,
+    BetterSleep = ML4,
+    SelfMedication = ML3,
+    DistancedLeisure = ML8,
+    SolitaryEntertainment = ML7,
+    TimeWithFamily = ML5,
+    Wellness = ML10,
+    # add the names for the unreliable factors
+    PositiveBehaviors = ML1,
+    TimeWithPets = ML9
+  ) %>%
+  pivot_longer(c(-ID,-timepoint), names_to='Factor', values_to='Score') %>%
+  {
+    tmp <- .
+    t1 = filter(tmp, timepoint == 1) %>% 
+      select(-timepoint) %>%
+      rename_at(vars(Score), ~paste0(.,'_t1'))
+    t2 = filter(tmp, timepoint == 2) %>% 
+      select(-timepoint) %>%
+      rename_at(vars(Score), ~paste0(.,'_t2'))
+    inner_join(t1, t2)
+  } %>%
+  group_by(Factor) %>%
+  mutate(Pearson = cor(Score_t1, Score_t2, use = 'p')) %>%
+  arrange(desc(Pearson)) %>%
+  mutate(Factor = factor(Factor, levels = rev(unique(Factor)))) %$%
+  ggplot(data = ., aes(Score_t1, Score_t2)) +
+  geom_abline(slope = 1, intercept = c(0,0), color = 'red') +
+  geom_point(color = 'dodgerblue',alpha = .6) +
+  geom_text(aes(x = 0, y = 2.53, label = round(Pearson, 2))) +
+  facet_wrap(~Factor) +
+  coord_fixed() +
+  theme_minimal()
+```
+
+# Confirmatory Factor Analysis for time 1 model, with time 2 data
+```{r}
+L_t1 = as.matrix(efa.list$T1$loadings %>% unclass)
+factor_syntax = imap(L_t1 %>% as.data.frame, ~{
+  vars = rownames(L_t1)[.x > .4]
+  ldngs = .x[.x > .4]
+  vars = c(vars[which.max(ldngs)], vars[-which.max(ldngs)])
+  vars %<>% 
+    str_replace_all(pattern='_', replacement='UND') %>%
+    str_extract("\\.[[:alpha:]]+$") %>%
+    str_extract('[[:alpha:]]+') %>%
+    str_replace_all('UND', '_')
+  # Return:
+  paste0(.y, ' =~ ', paste(vars, collapse = ' + '))
+})
+cat(paste(factor_syntax, collapse = '\n'))
+```
+
+# Fit model
+```{r}
+cfa.syntax = c("ML2 =~ PostOnSocMedia + TextingOrMessageOnSocMedia + SocMediaLiveChats + SocMediaToSupportFriends_eg_liking_sharing_retweeting
+ML6 =~ MoreTimeRelax + LessSchoolStress + MoreFreePhoneComputerTime_eg_texting_socialmedia + WatchMoreTV + AvoidingUnwantedSocialInteraction
+ML4 =~ GettingMoreSleep + GetMoreSleep + GettingGoodNightSleep
+ML3 =~ DrinkingAlcohol + UsingTobacco_eg_smoking_vaping + UsingMarijuana_eg_smoking_vaping_eating
+ML8 =~ TalkingWithFriends_eg_facetime_zoom + ReadingABook + ArtsOrCrafts + HelpingOthers + VideoCalls_eg_FaceTime_GoogleDuo_Skype_Zoom
+ML9 =~ FamilyActivities_eg_games_sports + MoreTimeExerciseOrGoOutside + Exercising + NotSkippingPrescribedDrugs + MoreAlertDuringDay
+ML7 =~ ListenMusic + WatchMovie + EatingComfortFood_eg_candy_chips
+ML1 =~ MoreTimeWithPets + SpendTimeWithPet
+ML5 =~ MoreFamilyTime + PlayingBoardGamesCard
+ML10 =~ MentalHealthCare_eg_therapists_psychologists_psychiatrists + EatingHealthier")
+
+# Format the variable names identically to how they are in the syntax above
+t2_cov = cov(FA_df.list$T2[-1], use = 'p')
+rownames(t2_cov) <- rownames(t2_cov) %>% 
+    str_replace_all(pattern='_', replacement='UND') %>%
+    str_extract("\\.[[:alpha:]]+$") %>%
+    str_extract('[[:alpha:]]+') %>%
+    str_replace_all('UND', '_')
+colnames(t2_cov) <- colnames(t2_cov) %>% 
+    str_replace_all(pattern='_', replacement='UND') %>%
+    str_extract("\\.[[:alpha:]]+$") %>%
+    str_extract('[[:alpha:]]+') %>%
+    str_replace_all('UND', '_')
+
+# Print out lavaan summary (and  fit model)
+summary(lavaan::cfa(cfa.syntax, sample.cov = t2_cov,
+            sample.nobs = sum(complete.cases(FA_df.list$T2[-1]))),
+        fit.measures = T)
+```
+
+
+Conclusion: fit is significant at time 2.
+
+-Some loadings are not significant however.
+- ML9 has no significant (estimated) loadings
+- ML1 (Pets) has one (estimated) loading (2 total), but it is not significant
+- ML7 had no significant (estimated) loadings, but they were less than .1
+
+# Relations with emotions at each timepoint
+```{r}
+covid_emo = covid %>% 
+  select(ID, timepoint, matches('emo\\.past\\.7\\.days\\.[[:alpha:]]+$')) %>%
+  select(-ends_with(c('Other','OtherText', 'None'))) %>%
+  group_by(timepoint) %>%
+  mutate(across(starts_with('emo.past.7.days.'), scale)) %>%
+  rename_all(~sub('emo.past.7.days.', '', .))
+longData_emoplusfactors = factors_overlapping_subjects %>%
+  left_join(covid_emo, by = c('ID', 'timepoint')) %>%
+  # rename the factors for interpretability
+  rename(
+    SocializingOnline = ML2,
+    PassiveCoping = ML6,
+    BetterSleep = ML4,
+    SelfMedication = ML3,
+    DistancedLeisure = ML8,
+    SolitaryEntertainment = ML7,
+    TimeWithFamily = ML5,
+    Wellness = ML10
+  ) %>%
+  mutate(id.key = paste0(ID, '_', timepoint), ID=NULL, timepoint=NULL) %>%
+  select(id.key, everything())
+```
+
+
+# Fit models with the reliable factors
+```{r}
+#names(longData_emoplusfactors)
+# [1] "id.key"                "SocializingOnline"     "PassiveCoping"        
+#  [4] "BetterSleep"           "SelfMedication"        "DistancedLeisure"     
+#  [7] "ML9"                   "SolitaryEntertainment" "ML1"                  
+# [10] "TimeWithFamily"        "Wellness"              "Anxious"              
+# [13] "Angry"                 "Content"               "Afraid"               
+# [16] "Happy"                 "Sad"                   "Worried"              
+# [19] "Irritable"             "Concerned"             "Stressed"             
+# [22] "Relieved"              "Distressed"            "Lonely"               
+# [25] "Bored"                 "Hopeless"              "Frustrated"           
+# [28] "Disappointed"          "Calm"                  "Appreciative"          
+emotions.t1 = longData_emoplusfactors %>% 
+  filter(grepl("_1$",id.key)) %>%
+  select(id.key, Anxious:last_col())
+emotions.t2 = longData_emoplusfactors %>% 
+  filter(grepl("_2$",id.key)) %>%
+  select(id.key, Anxious:last_col())
+factorScores.t1 = longData_emoplusfactors %>% 
+  filter(grepl("_1$",id.key)) %>%
+  select(id.key, SocializingOnline:Wellness) %>% select(-ML1, -ML9)
+factorScores.t2 = longData_emoplusfactors %>% 
+  filter(grepl("_2$",id.key)) %>%
+  select(id.key, SocializingOnline:Wellness) %>% select(-ML1, -ML9)
+```
+```{r}
+# t1 emotions ~ t1 factors
+significant_t1emo.t1fact.models = imap(emotions.t1[-1], function(y, .y) {
+  imap(factorScores.t1[-1], function(x, .x) {
+    # Make sure the variables are matched w.r.t. subject ID
+    overlapping = intersect(substr(emotions.t1$id.key, 1, 8), 
+                            substr(factorScores.t1$id.key, 1, 8))
+    Y = y[substr(emotions.t1$id.key, 1, 8) %in% overlapping]
+    X = x[substr(factorScores.t1$id.key, 1, 8) %in% overlapping]
+    # Fit model:
+    obj = lm(Y ~ X) %>% summary 
+    obj$Title = paste0(.x, ' predicting ', .y)
+    obj
+  })
+}) %>% reduce(c) %>%
+  Filter(x = ., f = function(x) x$coef[2,4] < .05)
+
+# t2 emotions ~ t1 factors
+significant_t2emo.t1fact.models = imap(emotions.t2[-1], function(y, .y) {
+  imap(factorScores.t1[-1], function(x, .x) {
+    # Make sure the variables are matched w.r.t. subject ID
+    overlapping = intersect(substr(emotions.t2$id.key, 1, 8), 
+                            substr(factorScores.t1$id.key, 1, 8))
+    Y = y[substr(emotions.t1$id.key, 1, 8) %in% overlapping]
+    X = x[substr(factorScores.t1$id.key, 1, 8) %in% overlapping]
+    # Fit model:
+    obj = lm(Y ~ X) %>% summary 
+    obj$Title = paste0(.x, ' predicting ', .y)
+    obj
+  })
+}) %>% reduce(c) %>%
+  Filter(x = ., f = function(x) x$coef[2,4] < .05)
+
+# t2 emotions ~ t2 factors
+significant_t2emo.t2fact.models = imap(emotions.t2[-1], function(y, .y) {
+  imap(factorScores.t2[-1], function(x, .x) {
+    # Make sure the variables are matched w.r.t. subject ID
+    overlapping = intersect(substr(emotions.t2$id.key, 1, 8), 
+                            substr(factorScores.t2$id.key, 1, 8))
+    Y = y[substr(emotions.t1$id.key, 1, 8) %in% overlapping]
+    X = x[substr(factorScores.t1$id.key, 1, 8) %in% overlapping]
+    # Fit model:
+    obj = lm(Y ~ X) %>% summary 
+    obj$Title = paste0(.x, ' predicting ', .y)
+    obj
+  })
+}) %>% reduce(c) %>%
+  Filter(x = ., f = function(x) x$coef[2,4] < .05)
+```
+```{r}
+# Print significant models
+walk(significant_t1emo.t1fact.models, ~{
+  print(.x$Title); print(.x)
+})
+```
+```{r}
+walk(significant_t2emo.t1fact.models, ~{
+  print(.x$Title); print(.x)
+})
+```
+```{r}
+walk(significant_t2emo.t2fact.models, ~{
+  print(.x$Title); print(.x)
+})
+```
+
+
+# Correlation between all variables from t1 to t2
+```{r}
+reliability_df = longData_emoplusfactors %>%
+  transmute(!!!rlang::syms(names(select(.,-id.key))), 
+            id = substr(id.key,1,8),
+            time = substr(id.key,nchar(id.key),nchar(id.key))) %>%
+  select(id, time, everything(), -ML1, -ML9) %>%
+  pivot_longer(-id:-time, names_to = 'variable') %>% 
+  group_by(variable) %>%
+  pivot_wider(id_cols=c(id, variable), names_from=time, values_from=value,
+              names_prefix='t') %>%
+  group_by(variable) %>%
+  summarize(reliability = cor(t1, t2, use = 'p', method = 'pearson')) %>%
+  arrange(desc(reliability)) %>%
+  mutate(variable = factor(variable, levels= rev(unique(variable))))
+# Plot reliabilities
+reliability_df %>%
+  ggplot(aes(x = reliability, y = variable)) +
+  geom_point() +
+  xlab('Time1:Time2 Reliability (Pearson correlation)')
+# Plot time to time trend
+
+```
+
+
+Use the long data, select only the overlapping subjects, and fit models to determine
+the effect of time one constructs on percent change from T1 to T2 of emotions
+```{r}
+df1 = rbind(emotions.t1, emotions.t2) %>%
+  transmute(!!!syms(names(select(., -id.key))), 
+            ID = substr(id.key, 1, 8),
+            timepoint = as.double(substr(id.key, nchar(id.key), nchar(id.key)))) %>%
+  inner_join(factors_overlapping_subjects, ., by = c('ID', 'timepoint')) %>%
+  select(ID, timepoint, everything()) %>%
+  rename(
+    SocializingOnline = ML2,
+    PassiveCoping = ML6,
+    BetterSleep = ML4,
+    SelfMedication = ML3,
+    DistancedLeisure = ML8,
+    SolitaryEntertainment = ML7,
+    TimeWithFamily = ML5,
+    Wellness = ML10,
+    # add the names for the unreliable factors
+    PositiveBehaviors = ML1,
+    TimeWithPets = ML9
+  )
+# Now that we have the common subjects, seperate dfs again
+df1.t1 = filter(df1,timepoint == 1) %>% select(-timepoint)
+df1.t2 = filter(df1,timepoint == 2) %>% select(-timepoint)
+# Calculate slopes
+slopes = df1 %>%
+  select(-timepoint) %>%
+  group_by(ID) %>%
+  summarize_all(~diff(.)) # time 2 minus time 1
+pctChange = df1 %>%
+  select(-timepoint) %>%
+  group_by(ID) %>%
+  summarize_all(~diff(.)/.[1])
+CoefVar = df1 %>%
+  select(-timepoint) %>%
+  group_by(ID) %>%
+  summarize_all(~sd(.)/mean(.))
+meancentered = df1 %>%
+  select(-timepoint) %>%
+  group_by(ID) %>%
+  summarize_all(~.[2] - mean(.))
+dim(slopes)
+dim(df1.t1)
+dim(df1.t2)
+```
+
+```{r}
+summary(lm(df1.t1$SocializingOnline ~ slopes$Anxious))
+summary(lm(df1.t1$SocializingOnline ~ pctChange$Anxious))
+summary(lm(df1.t1$SocializingOnline ~ CoefVar$Anxious))
+summary(lm(df1.t1$SocializingOnline ~ meancentered$Anxious))
+```
+
+
+
+# All combination of models
+```{r}
+factor_vars = select(df1.t1, -ID, -Anxious:-last_col())
+emo_slopes = select(slopes, Anxious:last_col())
+
+longitudinal_models = imap(factor_vars, function(factor, f) {
+  imap(emo_slopes, function(emotion, e) {
+    modsum = summary(lm(emotion ~ factor))
+    modsum$title = paste0(f, ' predicting ', e)
+    modsum
+  })
+}) %>% 
+  do.call(c, .)
+
+# Print significant models
+longitudinal_models %>%
+  Filter(x = ., f = function(x) x$coef[2,4] < .05) %>%
+  walk(., ~{print(.x$title); print(.x)})
+```
+
+
+<!-- # Fit a cross-lagged model -->
+<!-- ```{r} -->
+
+<!-- ``` -->
+
+

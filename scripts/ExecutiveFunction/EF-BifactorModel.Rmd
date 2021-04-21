@@ -1,0 +1,216 @@
+---
+title: "Executive Functioning Bifactor Model"
+author: "Ian Douglas"
+date: "4/18/2021"
+output: html_document
+---
+### setup
+```{r, warning=F, message=F}
+library(tidyverse)
+library(magrittr)
+library(lavaan)
+box_path = '~/Box/Research/covid19'
+read.csv.box = function(.path)
+{
+  read.csv(Sys.glob(file.path(box_path, .path)), stringsAsFactors = F)
+}
+readRDS.box = function(.path)
+{
+  readRDS(Sys.glob(file.path(box_path, .path)))
+}
+```
+
+
+-The data is in this repo (which is also hosted in Box)
+```{r}
+ef_beh = read.csv.box("data/EF_Behavioral/*summary*csv")
+ef = ef_beh %>%
+  # Select from the first EF column to the last EF column
+  select(ID=participant_id, year, child_age, adult_age, 
+         wisc_ds_total_t,wais_ds_total_t,
+         wisc_symsearch_total_t,wais_symsearch_total_t,
+         wisc_ds_total, wais_ds_total,
+         wisc_symsearch_correct, wais_symsearch_correct,
+         SymmSearchMergeRaw:NBackSqRt_totFinal) %>%
+  # Coalesce the age variable into one (collected in seperate columns for 18+ participants)
+  mutate(Age = coalesce(child_age, adult_age), child_age = NULL, adult_age = NULL) %>% 
+  # Replace any Inf with NA
+  mutate(across(c(-ID, -Age, -year), ~replace(., !is.finite(.), NA))) %>%
+  # Code Blaire's digit span variables
+  # combines wisc_ds_total_t and wais_ds_total_t wisc_symsearch_total_t and wais_symsearch_total_t
+  mutate(ds_total_t= coalesce(wisc_ds_total_t,wais_ds_total_t),
+         wisc_ds_total_t=NULL,wais_ds_total_t=NULL,
+         symsearch_total_t= coalesce ( wisc_symsearch_total_t,wais_symsearch_total_t),
+         wisc_symsearch_total_t=NULL,wais_symsearch_total_t=NULL,
+         #ds_total= coalesce(wisc_ds_total, wais_ds_total),
+         wisc_ds_total=NULL, wais_ds_total=NULL,
+         symsearch_correct= coalesce(wisc_symsearch_correct, wais_symsearch_correct),
+         wisc_symsearch_correct=NULL, wais_symsearch_correct=NULL) %>%
+  # for signalstop, cogflex, and nback, use the exclusion criteria to fill in NAs
+  {
+    tmp <- .
+    for (i in 1:nrow(tmp)) {
+      if (!is.na(tmp$nb_exclude[i])) {
+        if (tmp$nb_exclude[i]==1) {
+          tmp[i, c("NB_acc.1back","NB_rt.hit.med.1back","NB_num.hit.1back","NBackSqRt_1b",
+                   'NB_acc.2back','NB_rt.hit.med.2back','NB_num.hit.2back','NB_num.FA.2back')] <- NA
+        }
+      }
+      if (!is.na(tmp$sst_exclude[i])) {
+        if (tmp$sst_exclude[i]==1) {
+          tmp[i, c('go_rt_med','go_rt_sd','go_acc','go_error','stop_acc','stop_fail_cor',
+                   'stop_fail_incor','ssd_mean','SSRT')] <- NA
+        }
+      }
+      if (!is.na(tmp$cf_exclude[i])) {
+        if (tmp$cf_exclude[i]==1) {
+          tmp[i, c('cf_accuracy','cf_rt_correct','switchcost')] <- NA
+        }
+      }
+    }
+    tmp
+  } %>%
+  # Drop some variables that were previously determined to be redundant with others
+  # Redundancy was defined as correlations above ~.90 (within the same task)
+  select(-matches('^B[0-9]_SqRecall$'), -accuracy.R, -rt.R, -accuracy.S, -rt.S,
+         -nb_hitsminusfa_1back, -nb_hitsminusfa_2back, -ssd_med, -quantileRT, -nb_exclude,
+         -MedSymmetryRT, -LocalGlobalSwRT, -SymmSpan_TotAccErr, -NBackSqRt_totFinal,
+         -NBackSqRt_2bFinal, -NBackSqRt_2bFinal, -NBackSqRt_tot,-nb_hitsminusfa_total,
+         -NBackSqRt_1bFinal, -NBackSqRt_2bFinal, -NBackSqRt_totFinal, -sst_exclude, -cf_exclude,
+         -stop_error, -NBackSqRt_2b, -NBackSqRt_tot, -NB_num.FA.1back) %>%
+  # Taking the most recent timepoint, but add a caveat:
+  # Assess the most recent, and one before it.
+  # Use coalesce to just replace any NA in the most recent with one before it.
+  # If there are still NA in the one before it, then they will stay NA.
+  # We don't take any data from any further back so as to keep the EF data mostly recent.
+  ungroup %>%
+  group_by(ID) %>%
+  arrange(desc(year)) %>%
+  slice(1:2) %>% # most recent, then the one before it
+  group_by(ID) %>%
+  # Hand-coded coalesce
+  summarise(across(everything(), ~{
+    if (!is.na(.[1])) {.[1]} else if (!is.na(.[2])) .[2] else NA
+  })) %>% 
+  ungroup %>%
+  select(ID, year, Age, everything())
+```
+
+
+# Separate out by age, and create the same for Blaire's variables
+```{r}
+dim(ef)
+younger_ef = ef %>% filter(Age < floor(median(Age)))
+older_ef = ef %>% filter(Age >= floor(median(Age)))
+nrow(younger_ef) # 93
+nrow(older_ef) # 132
+nrow(younger_ef) + nrow(older_ef)
+ef_list = list('under13' = list('data'=younger_ef,
+                                'cov' = cov(younger_ef[-1:-3], use = 'p'),
+                                'complete' = sum(complete.cases(younger_ef[-1:-3]))), 
+               'over13' = list('data'=older_ef,
+                               'cov' = cov(older_ef[-1:-3], use = 'p'),
+                                'complete' = sum(complete.cases(older_ef[-1:-3]))))
+```
+
+
+
+
+# Checkout out some fit stats for different 
+```{r}
+paste(names(ef), collapse=" + ")
+```
+
+# Set up the models
+
+1. Basic bifactor model will treat each task as having a latent variable
+2. There will then be a general effect on each observed variable (general EF factor)
+```{r}
+bifactorSyntax <- c('general.EF.factor =~ ds_total_t + SymmSearchMergeRaw + SymmSearch_avgrt + ConnectSwRT + StroopInRT + ConnectFinal + LocalGlobalFinal + go_rt_med + go_rt_sd + go_acc + go_error + stop_acc + stop_fail_cor + stop_fail_incor + ssd_mean + SSRT + NB_acc.1back + NB_acc.2back + NB_rt.hit.med.1back + NB_rt.hit.med.2back + NB_num.hit.1back + NB_num.hit.2back + NB_num.FA.2back + cf_accuracy + cf_rt_correct + switchcost + SymmSpan_TotSqRecall + SymmSpan_TotSymmErr + SymmSpan_TotSpdErr + MeanSymmetryRT + NBackSqRt_1b + symsearch_total_t + symsearch_correct\n
+symbolsearch =~ SymmSearchMergeRaw + SymmSearch_avgrt + symsearch_total_t + symsearch_correct\n
+connections =~ ConnectSwRT + ConnectFinal\n
+animalstroop =~ StroopInRT\n
+localglobal =~ LocalGlobalFinal\n
+signalstop =~ go_rt_med + go_rt_sd + go_acc + go_error + stop_acc + stop_fail_cor + stop_fail_incor + ssd_mean + SSRT\n
+n1back =~ NB_acc.1back + NB_rt.hit.med.1back + NB_num.hit.1back + NBackSqRt_1b\n
+n2back =~ NB_acc.2back + NB_rt.hit.med.2back + NB_num.hit.2back + NB_num.FA.2back\n
+cogflex =~ cf_accuracy + cf_rt_correct + switchcost\n
+symmetryspan =~ SymmSpan_TotSqRecall + SymmSpan_TotSymmErr + SymmSpan_TotSpdErr + MeanSymmetryRT\n
+digitspan =~ ds_total_t + ds_total\n
+symbolsearch ~~ 0*general.EF.factor\n
+connections ~~ 0*general.EF.factor\n
+animalstroop ~~ 0*general.EF.factor\n
+localglobal ~~ 0*general.EF.factor\n
+signalstop ~~ 0*general.EF.factor\n
+n1back ~~ 0*general.EF.factor\n
+n2back ~~ 0*general.EF.factor\n
+cogflex ~~ 0*general.EF.factor\n
+digitspan ~~ 0*general.EF.factor')
+cat(bifactorSyntax)
+```
+
+
+# Fit models
+```{r}
+ef_list$under13$cfa =  cfa(
+  model = bifactorSyntax,
+  sample.cov = ef_list$under13$cov,
+  sample.nobs = ef_list$under13$complete,
+  orthogonal=F # this will only affect the estimated factors
+)
+ef_list$over13$cfa =  cfa(
+  model = bifactorSyntax,
+  sample.cov = ef_list$over13$cov,
+  sample.nobs = ef_list$over13$complete,
+  orthogonal=F # this will only affect the estimated factors
+)
+```
+
+# Extract the general factor
+```{r}
+ef_list$under13$data$EF.GENERAL <- predict(ef_list$under13$cfa, 
+                                           replace(ef_list$under13$data, 
+                                                   is.na(ef_list$under13$data), 0))[,1]
+ef_list$over13$data$EF.GENERAL <- predict(ef_list$over13$cfa, 
+                                           replace(ef_list$over13$data, 
+                                                   is.na(ef_list$over13$data), 0))[,1]
+```
+
+
+# Regressions with behavioral factors
+```{r}
+time1_fa = readRDS.box("output/FactorAnalysis/no-rotation*list.rds")
+time1_fadata = readRDS("~/Box/Church_Lab/EF_Study/COVID_Study/data/factorAnalysisData.rds")
+# Get scores
+time1_LV = factor.scores(
+  x = time1_fadata[-1] %>% as.matrix, 
+  f = time1_fa$fa.ml.10$rotated_loadings$Varimax, # varimax-rotated loadings
+  method = 'Thurstone'
+) %>% pluck('scores')
+
+# get the data frame with the latent scores and the participant ID as well.
+time1_lv.df = cbind(time1_fadata[1], time1_LV)
+
+# Fit models.
+general_EF_df = rbind(ef_list$under13$data %>% select(ID, EF.GENERAL),
+                      ef_list$over13$data %>% select(ID, EF.GENERAL))
+# This time predict the COVID factors from (earlier) EF
+behLVtime1_EFgeneral.mods = imap(time1_lv.df[-1], function(y, .y) {
+  imap(general_EF_df[-1], function(x, .x) {
+    # Merge them, so we can use the overlapping subjects from the diff. timepoints
+    y.df = tibble(ID = time1_lv.df$ID, Y = scale(y))
+    x.df = tibble(ID = general_EF_df$ID, X = x)
+    Z = inner_join(x.df, y.df, by = 'ID')
+    # Fit model:
+    obj = lm(Y ~ X, Z) %>% summary 
+    obj$Title = paste0(.x, ' predicting ', .y)
+    obj
+  })
+}) %>% reduce(c) %>%
+  Filter(x = ., f = function(x) x$coef[2,4] < .05)
+
+iwalk(behLVtime1_EFgeneral.mods, ~{
+  print(.x$Title); print(.x)
+})
+```
+

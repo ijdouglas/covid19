@@ -14,41 +14,11 @@ read_csv.box = function(file, ...) {read_csv(Sys.glob(file.path(box_path, file))
 write.csv.box = function(object, file, ...) {write.csv(object, file.path(box_path, file), ...)}
 ```
 
-# Read in the data
-```{r}
-covid = readRDS.box('data/*/time1+time2_LongData.rds')
-covid1 = covid %>% filter(timepoint == 1)
-covid2 = covid %>% filter(timepoint == 2)
-# separate out the emotion variables
-covid_emo.list = list('T1' = covid1, 
-                     'T2' = covid2) %>%
-  purrr::map(., ~{
-  .x %>%
-      dplyr::select(ID, timepoint, matches('emo\\.past\\.7\\.days\\.[[:alpha:]]+$')) %>%
-      dplyr::select(-ends_with(c('Other','OtherText', 'None'))) %>%
-      mutate(across(starts_with('emo.past.7.days.'), scale)) %>%
-      rename_all(~sub('emo.past.7.days.', '', .)) %>%
-      # drop the redundant timepoint variables
-      dplyr::select(-timepoint) %>%
-      # set ID to the rownames instead of being a column
-      column_to_rownames('ID')
-  })
-```
-
 # Emotional variables
 ```{r}
-covid_emo_cluster.list = covid_emo.list %>%
-  purrr::map(EGA, model = 'glass', algorithm = 'walktrap')
-```
-
-# Plot the network, and view the clusters
-```{r}
-plot(caspe.emo.ega)
-net.loads(caspe.emo.ega)
-```
-
-```{r}
-
+CaspeEmotional = readRDS(
+  "~/Box/Church_Lang/EF_Study/COVID_Study/data/CaspeEmotional.rds"
+)
 ```
 
 # Now a version treating the ordinal variables as continuous.
